@@ -1,3 +1,16 @@
+Different parts of source code are licensed differently:
+
+-FreeRTOS, modified GPL, 
+ see freertos/license.txt
+-ST Microelectronics STM32 peripheral driver library, ST Liberty SW License Agreement V2
+ see periphdriver/MCD-ST Liberty SW License Agreement V2.pdf
+-Main firmware and utility tool,s GPL V2, 
+ see rest of this document
+
+
+
+
+
 GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 
