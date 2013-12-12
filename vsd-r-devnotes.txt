@@ -1,0 +1,25 @@
+	//FLOPS benchs, riveja unrollattuna 10x loopissa
+	//gcc -O0 ei optimoi pois tyhmia rivejakaan
+	//vars=float
+	//empty loop only: 2MHz -> 0.05us overhead per line, not accounted in MFLOPS calps
+	//x=sqrt(x*26684.4675);//83kHz/line
+	//x=sqrt(x);//90kHz
+	//x=sqrtf(x);//283kHz
+	//r=x*x*x*x*x*x*x*x*x*x;//300kHz  -> 3MFLOPS
+	//r=x+x-x+x-x+x+x+x-x+x;//275k  -> 2.75MFLOPS
+	//r=x/x;1880kHz
+	//r=15634.63*x/x; 450kHz
+	//r=a*cosf(x)+b*sinf(x); 3.2kHz/line
+	//r=cosf(x); 16.3kHz
+	//conv=b; conv=int eli float->int 4020kHz 40MFLOPS
+	//x=conv*7; int->float  2760kHz 27MFLOPS
+	//SO: dont use trigonometrics. Convert to int and use lookup
+	
+	
+	
+	
+ Must set these at startup code before PLL enable
+  //spectrum spread 1kHz 1% depth @ PLL_M=8 CPU=120MHz, center freq mode
+  //RCC->SSCGR= 250 | (63<<13) | RCC_SSCGR_SSCGEN;
+  //spectrum spread 5kHz 1% depth @ PLL_M=8 CPU=120MHz, center freq mode
+  RCC->SSCGR= 50 | (315<<13) | RCC_SSCGR_SSCGEN;

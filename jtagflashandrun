@@ -1,0 +1,3 @@
+#!/bin/bash
+killall arm-none-eabi-gdb
+arm-none-eabi-gdb -x gdbrun.conf argon_rom.elf
