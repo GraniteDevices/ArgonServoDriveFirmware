@@ -11,6 +11,8 @@ Granite Devices or any of it's personnel doesn't take any responsibility of dama
 HOW TO COMPILE
 ==============
 
+*NOTE* This guide is work in progress and incomplete. More information and actual examples will follow later.
+
 Tools needed
 ------------
 
@@ -31,15 +33,15 @@ c) Makefirmware utily
 
 This tool converts the generated binary file into .gdf file that may be loaded to Argon drive with Granity software.
 
-The soucre code of this program is included in this repository at utils/makefirmware. Compile it with GCC by running command "make" on the same folder (GCC that compiles C code into target system must be installed to the system).
+The soucre code of this program is included in this repository at utils/makefirmware. Compile it with GCC by running command `make` on the same folder (GCC that compiles C code into target system must be installed to the system).
 
-TODO: add compiled file for convenience.
+TODO: add compiled makefirmware executable for convenience.
 
 Compiling firmware
 ------------------
 
 - Open command prompt and go to project directory where Makefile lies.
-- Run make by entering command: *make* (Compiler outputs lots of stuff)
+- Run make by entering command: `make` (Compiler outputs lots of stuff)
 - When comipation is succeed, something like following text should become as last output lines:
 
 		text    data     bss     dec     hex filename
@@ -51,7 +53,7 @@ If so, then just generated argon_bootload_rom.bin is the binary file going to Ar
 Convert .bin to .gdf with command:
 makefirmware argon.gdf argon_bootload_rom.bin
 
-A sucecssfull run of makefirmware will ouptut something like:
+A sucecssfull run of makefirmware will output something like:
 
 		Create file 'argon.gdf'
 		Input size=39824 bytes, output=39824 bytes
