@@ -25,6 +25,9 @@
  */
 
 
+ /* Change log. 
+ 1.1.1 Fix typo Ganite->Granite 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,8 +42,8 @@
 
 #include <sys/stat.h>
 
-#define HEADER1 "makefirmware 1.1.0 - Create bootloadable STM32 binary for Ganite Devices Argon\n"
-#define HEADER2 "Copyright (c) 2012 Tero Kontkanen\n\n"
+#define HEADER1 "makefirmware 1.1.1 - Create bootloadable STM32 binary for Granite Devices Argon\n"
+#define HEADER2 "Copyright (c) 2012-2014 Tero Kontkanen\n\n"
 
 int verbose = TRUE;
 
