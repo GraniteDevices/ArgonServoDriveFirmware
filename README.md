@@ -11,7 +11,7 @@ Granite Devices or any of it's personnel doesn't take any responsibility of dama
 HOW TO COMPILE
 ==============
 
-*NOTE* This guide is work in progress and incomplete. More information and actual examples will follow later.
+*NOTE* This guide is partially work in progress. More information and actual FW modification examples shall follow later.
 
 Tools needed
 ------------
@@ -35,8 +35,6 @@ This tool converts the generated binary file into .gdf file that may be loaded t
 
 The soucre code of this program is included in this repository at utils/makefirmware. Compile it with GCC by running command `make` on the same folder (GCC that compiles C code into target system must be installed to the system).
 
-TODO: add compiled makefirmware executable for convenience.
-
 Compiling firmware
 ------------------
 
@@ -50,8 +48,7 @@ Compiling firmware
 
 If so, then just generated argon_bootload_rom.bin is the binary file going to Argon STM32 MCU. Before it can be loaded into drive, it needs to be converted as .gdf file so Granity can use it.
 
-Convert .bin to .gdf with command:
-`makefirmware argon.gdf agron_bootload_rom.bin`
+Convert .bin to .gdf with command: `makefirmware argon.gdf agron_bootload_rom.bin`. Makefirmware is available under utils/makefirmware folder.
 
 A sucecssfull run of makefirmware will output something like:
 
