@@ -51,12 +51,12 @@ Compiling firmware
 If so, then just generated argon_bootload_rom.bin is the binary file going to Argon STM32 MCU. Before it can be loaded into drive, it needs to be converted as .gdf file so Granity can use it.
 
 Convert .bin to .gdf with command:
-makefirmware argon.gdf argon_bootload_rom.bin
+`makefirmware argon.gdf agron_bootload_rom.bin`
 
 A sucecssfull run of makefirmware will output something like:
 
 		Create file 'argon.gdf'
 		Input size=39824 bytes, output=39824 bytes
 
-The argon.gdf may be now loaded into Argon with Granity. Be informed that Granite Devices doesn't take any responsibility of damages or losses caused by customzed or user compiled firmware files! It is possible to compile firmware a way that breaks the hardware or causes danger or damage to users or their property.
+The argon.gdf may be now loaded into Argon with Granity (see [instructions](http://granitedevices.com/wiki/Firmware)). Be informed that Granite Devices doesn't take any responsibility of damages or losses caused by customzed or user compiled firmware files! It is possible to compile firmware a way that breaks the hardware or causes danger or damage to users or their property.
 
