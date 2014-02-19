@@ -1,7 +1,7 @@
 Argon servo drive I/O microcontroller firmware
 ==============================================
 
-The I/O side ARM MCU firmware for Granite Devices ARGON servo motor drive.
+The I/O side ARM MCU firmware for [Granite Devices](http://granitedevices.com) [ARGON](http://granitedevices.com/digital-servo-drive-argon) servo motor drive.
 
 DISCLAIMER
 ==========
