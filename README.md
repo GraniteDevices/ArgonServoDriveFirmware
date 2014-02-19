@@ -58,5 +58,9 @@ A sucecssfull run of makefirmware will output something like:
 		Create file 'argon.gdf'
 		Input size=39824 bytes, output=39824 bytes
 
-The argon.gdf may be now loaded into Argon with Granity (see [instructions](http://granitedevices.com/wiki/Firmware)). Be informed that Granite Devices doesn't take any responsibility of damages or losses caused by customzed or user compiled firmware files! It is possible to compile firmware a way that breaks the hardware or causes danger or damage to users or their property.
+Installing firmware
+===================
 
+Before uploading the newly compiled FW, make sure that you already have the latest available [official Argon FW release](http://granitedevices.com/wiki/Argon_firmware_releases) installed in the drive because the custom I/O side firmware will not affect or upgrade GraniteCore version in the drive. Once latest official FW is present in the drive, continue uploading your newly built argon.gdf by following the FW upgrade [instructions](http://granitedevices.com/wiki/Firmware). 
+
+Be informed that Granite Devices doesn't take any responsibility of damages or losses caused by customzed or user compiled firmware files! It is possible to compile firmware a way that breaks the hardware or causes danger or damage to users or their property.
