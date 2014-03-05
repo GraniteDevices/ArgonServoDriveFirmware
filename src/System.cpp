@@ -50,8 +50,8 @@ System::System() :
 	positionFeedbackDevice=Encoder;
 	velocityFeedbackDevice=Encoder;
 
-	//positionFeedbackDevice=Resolver;
-	//velocityFeedbackDevice=Resolver; //set also  resolver.enableResolverRead(true); later
+//	positionFeedbackDevice=Resolver;
+//	velocityFeedbackDevice=Resolver; //set also  resolver.enableResolverRead(true); later
 
 	//digitalCounterInput.setCountMode( DigitalCounterInput::PWM );
 
@@ -62,8 +62,6 @@ System::System() :
 	updateSpreadSpectrumClockMode();
 	initGeneralTimer();
 	enableHighFrequencyTask( true );
-
-
 
 //	resolver.enableResolverRead(true);
 
@@ -574,7 +572,7 @@ void System::initGeneralTimer()
 	TIM_Cmd( TIM5, ENABLE );
 }
 
-#define BRAKE_RELEASE_DELAY_MOD 0
+#define BRAKE_RELEASE_DELAY_MOD 1
 void System::updateMechBrakeState()
 {
 	//this function is called at low frequency (~10Hz)
