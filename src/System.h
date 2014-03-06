@@ -32,6 +32,8 @@
  *      -velocity poll time jitter compensation implemented
  * 1006 -production testing fast response test of GPIO removed
  * 1007 -brake released delay changed from 0 to 0.8s
+ * 1008 -brake release delay is now parameterizable
+ *      -DelayedConditional cleanup & new features
  */
 
 /*
@@ -39,7 +41,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1007
+#define FW_VERSION 1008
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1000
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -337,7 +339,7 @@ public:
 		return brakeEngageDelayMs;
 	}
 
-	int getbrakePoweronReleaseDelayUs() const
+	int getBrakePoweronReleaseDelayMs() const
 	{
 		return brakePoweronReleaseDelayMs;
 	}

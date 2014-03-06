@@ -591,7 +591,10 @@ void System::updateMechBrakeState()
 #elif BRAKE_RELEASE_DELAY_MOD
 
 	static DelayedConditional brakeReleaseDelay(this,0.8,true);
+	brakeReleaseDelay.setDelay((float)getBrakePoweronReleaseDelayMs()/1000.0);
 	bool brakerelease;
+
+	setDebugParam(4,getBrakePoweronReleaseDelayMs());
 
 	if( (GCStatusBits & STAT_BRAKING) || (FaultBitsReg&FATAL_STM32_FW_FAULTS) )
 		brakerelease=false;
@@ -643,8 +646,8 @@ bool System::readInitStateFromGC()
 	setControlMode((ControlMode)sys.getParameter(SMP_CONTROL_MODE, fail ));
 
 	//read brake control registers
-	setBrakePoweronReleaseDelayMs(sys.getParameter(SMP_BRAKE_POWERON_RELEASE_DELAY, fail ));
-	setBrakeEngageDelayMs(sys.getParameter(SMP_BRAKE_STOP_ENGAGE_DELAY, fail ));
+	setBrakePoweronReleaseDelayMs(sys.getParameter(SMP_MECH_BRAKE_RELEASE_DELAY, fail ));
+	setBrakeEngageDelayMs(sys.getParameter(SMP_MECH_BRAKE_ENGAGE_DELAY, fail ));
 
 
 

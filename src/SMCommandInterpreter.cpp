@@ -165,11 +165,11 @@ bool SMCommandInterpreter::executeHostSideGlobalSetParamCommand(
 			else if(cmd.param==SMP_SYSTEM_STOP_PRODUCTION_TEST )
 				parentSystem->clrSignal(System::RunProductionTest);
 			break;
-		case SMP_BRAKE_POWERON_RELEASE_DELAY:
-			parentSystem->setBrakePoweronReleaseDelayMs(cmd.param*1000);
+		case SMP_MECH_BRAKE_RELEASE_DELAY:
+			parentSystem->setBrakePoweronReleaseDelayMs(cmd.param);
 			break;
-		case SMP_BRAKE_STOP_ENGAGE_DELAY:
-			parentSystem->setBrakeEngageDelayMs(cmd.param*1000);
+		case SMP_MECH_BRAKE_ENGAGE_DELAY:
+			parentSystem->setBrakeEngageDelayMs(cmd.param);
 			break;
 		default:
 			if (setParamAddr < 200 )

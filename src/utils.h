@@ -21,10 +21,13 @@ public:
 
 	bool delayedTrue(bool inputstate );
 
+	void setDelay(float delay);
+
 private:
-	u32 stableStateSince;//time value when state changed last time to true
+	u32 inputStateLastTransitionToTrueTime;//time value when state changed last time to true
 	s32 delayUs;
 	System *system;
+	bool outputState;
 };
 
 

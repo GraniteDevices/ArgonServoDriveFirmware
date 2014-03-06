@@ -286,28 +286,42 @@ DelayedConditional::DelayedConditional( System* sys, float delay, bool initialOu
 	system=sys;
 	delayUs=delay*1e6;
 
-	if(initialOutput==true)
-		stableStateSince=system->getTimeMicrosecs()-delayUs-1;
+	outputState=initialOutput;
+
+	if(outputState==true)
+		inputStateLastTransitionToTrueTime=system->getTimeMicrosecs()-delayUs-1;
 	else
-		stableStateSince=system->getTimeMicrosecs();
+		inputStateLastTransitionToTrueTime=system->getTimeMicrosecs();
+
+	setDelay(delay);
+}
+
+void DelayedConditional::setDelay(float delay)
+{
+	delayUs=int(delay*1e6);
+
+	if(outputState==true)//avoid setting output to off if increase delay time middle of operation
+		inputStateLastTransitionToTrueTime=system->getTimeMicrosecs()-delayUs-1;
 }
 
 bool DelayedConditional::delayedTrue( bool inputstate )
 {
 	u32 currTime=system->getTimeMicrosecs();
 	if(inputstate==false)//reset stable state
-		stableStateSince=currTime;
+		inputStateLastTransitionToTrueTime=currTime;
 
-	//handles rollover correctly
-	s32 tDiff=s32(currTime-stableStateSince);
+	//this handles rollover correctly
+	s32 tDiff=s32(currTime-inputStateLastTransitionToTrueTime);
 
-	if(tDiff>=delayUs)
+	if(tDiff>delayUs)
 	{
-		stableStateSince=currTime-delayUs-1;//avoid rollover if constant true for long time
-		return true;
+		inputStateLastTransitionToTrueTime=currTime-delayUs-1;//this is to avoid rollover if constant true for long time
+		outputState=true;
 	}
 	else
-		return false;
+		outputState=false;
+
+	return outputState;
 }
 
 
