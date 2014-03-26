@@ -207,8 +207,8 @@ void ProductionTester::testFBIO()
 	Delay_1us(slowRespWait);
 	isFBInExpectedState( 0, 0, 1, 1, 0,   1, 0, 1,   false );//all states settled now
 
-	isAnalogInWithinRange(AnalogIn::EncA, -0.8, -0.7, CHAAna,false);
-	isAnalogInWithinRange(AnalogIn::EncB, -0.8, -0.7, CHBAna,false);
+	isAnalogInWithinRange(AnalogIn::EncA, -0.98, -0.82, CHAAna,false);
+	isAnalogInWithinRange(AnalogIn::EncB, -0.98, -0.82, CHBAna,false);
 
 	//switch CHE=1
 	sys.physIO.doutCHE.setState(1);
@@ -217,8 +217,8 @@ void ProductionTester::testFBIO()
 	Delay_1us(slowRespWait);
 	isFBInExpectedState( 1, 0, 1, 1, 0,   0, 1, 0,   false );//all states settled now
 
-	isAnalogInWithinRange(AnalogIn::EncA, 0.7, 0.8, CHAAna,true);
-	isAnalogInWithinRange(AnalogIn::EncB, -0.8, -0.7, CHBAna,true);
+	isAnalogInWithinRange(AnalogIn::EncA, 0.82, 0.98, CHAAna,true);
+	isAnalogInWithinRange(AnalogIn::EncB, -0.98, -0.82, CHBAna,true);
 
 	//switch CHD=0
 	sys.physIO.doutCHD.setState(0);
@@ -227,8 +227,8 @@ void ProductionTester::testFBIO()
 	Delay_1us(slowRespWait);
 	isFBInExpectedState( 1, 1, 0, 0, 0,   0, 1, 0,   false );//all states settled now
 
-	isAnalogInWithinRange(AnalogIn::EncA, 0.7, 0.8, CHAAnab,false);
-	isAnalogInWithinRange(AnalogIn::EncB, 0.7, 0.8, CHBAnab,false);
+	isAnalogInWithinRange(AnalogIn::EncA, 0.82, 0.98, CHAAnab,false);
+	isAnalogInWithinRange(AnalogIn::EncB, 0.82, 0.98, CHBAnab,false);
 
 	//switch CHE=0
 	sys.physIO.doutCHE.setState(0);

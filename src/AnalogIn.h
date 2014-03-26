@@ -14,6 +14,11 @@
 #define ADC_CHANS 4
 #define ADC_OVERSAMPLING 8
 
+//in ideal case offset of raw value (when input is 0V) is 16384 which is half way the raw value scale
+//however about some typical offset is present in practical HW and it's compensated here
+#define ADC_OFFSET_VALUE_ENC (16384+650)
+#define ADC_OFFSET_VALUE_ANAIN (16384+47)
+
 class AnalogIn {
 public:
 	AnalogIn();

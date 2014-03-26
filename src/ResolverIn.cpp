@@ -138,6 +138,10 @@ u16 ResolverIn::getAngle()
 	 * yli +-2v
 	 *
 	 */
+
+	/* TODO add fault detection if voltages of both channels less than 100mV or so
+	 * this detects disconnected resolver and prevents angle going crazy*/
+
 	lastAngle = currAngle;
 	float x, y; //parentSys->physIO.ADin.getVoltageVolts(AnalogIn::EncA),parentSys->physIO.ADin.getVoltageVolts(AnalogIn::EncB)
 

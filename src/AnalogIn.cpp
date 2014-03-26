@@ -218,14 +218,19 @@ s16 AnalogIn::getVoltage(Channel channel)
 			//124=-10V=-16384
 			//3909=10V=16384
 			//0V=2048
-			return (s32(getSample(channel))-16384)*(144250/8)/16384;
+			return (s32(getSample(channel))-ADC_OFFSET_VALUE_ANAIN)*(144250/8)/16384;
 			break;
 		case EncA:
 		case EncB:
-			//29348=10V (out of range, input amp V gain 2.2X)
-			//-25253=-10V
+			//analog gain 1.80333x with 10+2.2k & 22k feedback resistors
+			//24425=10V (out of range, input amp V gain 1.80333X)
+			//-20329=-10V
 			//0V=2048
-			return (s32(getSample(channel))-16384)*(9833/8)/16384;
+
+			//in reality this gain seems to be about 10% too much compared to reality due to RS422 receiver
+			//input internal resistances that also load adc inputs and cause reduction of gain
+			//however we let it be like this as enc analog inputs are not needed to be measured accurately anyways
+			return (s32(getSample(channel))-ADC_OFFSET_VALUE_ENC)*(11996/8)/16384;
 			break;
 	}
 }
@@ -242,15 +247,19 @@ float AnalogIn::getVoltageVolts(Channel channel)
 			//124*16=-10V=-16384
 			//3909*16=10V=16384
 			//0V=2048*16
-			return float(s32(getSample(channel))-16384)*(0.0053735/8.0);
+			return float(s32(getSample(channel))-ADC_OFFSET_VALUE_ANAIN)*(0.0053735/8.0);
 			break;
 		case EncA:
 		case EncB:
-			//analog gain 2.2x with 10k & 22k resistors
-			//29348=10V (out of range, input amp V gain 2.2X)
-			//-25253=-10V
+			//analog gain 1.80333x with 10+2.2k & 22k feedback resistors
+			//24425=10V (out of range, input amp V gain 1.80333X)
+			//-20329=-10V
 			//0V=2048
-			return float(s32(getSample(channel))-16384)*(3.6630e-4/8.0);
+
+			//in reality this gain seems to be about 10% too much compared to reality due to RS422 receiver
+			//input internal resistances that also load adc inputs and cause reduction of gain
+			//however we let it be like this as enc analog inputs are not needed to be measured accurately anyways
+			return float(s32(getSample(channel))-ADC_OFFSET_VALUE_ENC)*(4.4688e-4/8.0);
 			break;
 	}
 	return -1.0;//error if go here

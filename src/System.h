@@ -34,6 +34,9 @@
  * 1007 -brake released delay changed from 0 to 0.8s
  * 1008 -brake release delay is now parameterizable
  *      -DelayedConditional cleanup & new features
+ * 1009 (WIP) -ADC (anain and encoder adc readouts) offset software compensated
+ *      -Gain of encoder ADC input corrected to mach HW better
+ *      -production test voltage limits updated accordingly
  */
 
 /*
