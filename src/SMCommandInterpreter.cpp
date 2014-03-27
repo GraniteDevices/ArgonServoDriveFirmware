@@ -140,7 +140,8 @@ bool SMCommandInterpreter::executeHostSideGlobalSetParamCommand(
 			break;
 
 		case SMP_FAULTS:
-			parentSystem->clearFaults();
+			if(cmd.param==0)
+				parentSystem->clearFaults();
 			break;
 		case SMP_DEBUGPARAM4:
 			parentSystem->setDebugParam(4,cmd.param);

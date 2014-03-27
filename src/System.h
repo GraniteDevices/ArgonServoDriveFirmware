@@ -37,6 +37,7 @@
  * 1009 (WIP) -ADC (anain and encoder adc readouts) offset software compensated
  *      -Gain of encoder ADC input corrected to mach HW better
  *      -production test voltage limits updated accordingly
+ *      -sending clear faults cmd now clears also fault location 2 register
  */
 
 /*
@@ -192,6 +193,7 @@ public:
 	 * 48 sm485
 	 * 60 mccommunication
 	 * 15 System
+	 * 89 ResolverIn
 	 */
 	void setFault( u32 faultbits, u32 faultlocation );
 	void clearFaults(); //clear all faults and fault location
@@ -242,7 +244,7 @@ public:
 	/*Feedback drivers*/
 	EncoderIn encoder;
 	ResolverIn resolver;
-	enum FeedbackDevice { Encoder,Resolver };
+	enum FeedbackDevice { None,Encoder,Resolver };
 
 
 	/* Drive input reference singal methods */

@@ -30,7 +30,9 @@
 #include "utils.h"
 
 //10kHz switching
-#define RESOLVER_FREQ 10000
+//#define RESOLVER_FREQ 10000
+
+#define FAULTLOCATION_BASE 890000
 
 ResolverIn::~ResolverIn()
 {
@@ -115,6 +117,7 @@ void ResolverIn::enableResolverRead( bool on )
 #include <math.h>
 u16 ResolverIn::getAngle()
 {
+	static DelayedConditional faultdelay(parentSys,0.2,false);
 	//TODO
 
 	/* status 9.2012:
@@ -146,6 +149,16 @@ u16 ResolverIn::getAngle()
 	float x, y; //parentSys->physIO.ADin.getVoltageVolts(AnalogIn::EncA),parentSys->physIO.ADin.getVoltageVolts(AnalogIn::EncB)
 
 	getSamples( x, y );
+
+	//detect loss of input voltage (resolver disconnected or miswired)
+	bool fault=false;
+	if((x*x+y*y)<0.1) fault=true;
+	if(faultdelay.delayedTrue( fault ) )
+	{
+		parentSys->setFault(FLT_ENCODER,FAULTLOCATION_BASE+101);
+	}
+
+
 	currAngle = u16( s32( 65536.0 * atan2f( x, y ) * (0.5 / M_PI) ) );
 
 	lastOutputCount = outputCount;
