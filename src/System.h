@@ -34,10 +34,11 @@
  * 1007 -brake released delay changed from 0 to 0.8s
  * 1008 -brake release delay is now parameterizable
  *      -DelayedConditional cleanup & new features
- * 1009 (WIP) -ADC (anain and encoder adc readouts) offset software compensated
+ * 1009 -ADC (anain and encoder adc readouts) offset software compensated
  *      -Gain of encoder ADC input corrected to mach HW better
  *      -production test voltage limits updated accordingly
  *      -sending clear faults cmd now clears also fault location 2 register
+ *      -initial resolver support ready
  */
 
 /*
@@ -45,7 +46,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1008
+#define FW_VERSION 1009
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1000
 
 #define COMMAND_QUEUE1_SIZE 256
