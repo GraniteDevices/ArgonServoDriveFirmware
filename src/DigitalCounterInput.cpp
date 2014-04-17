@@ -190,8 +190,9 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 
 		/* SECOND PWM ON TIM1 */
+		TIM_PrescalerConfig(TIM1, 2, TIM_PSCReloadMode_Immediate);//set clock divided by 2 as TIM1 runs 120MHz as TIM2 only 60MHz
 	    /* TI4 Configuration */
-		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV2;//use divider 2 as TIM1 runs at 120MHz (TIM2 at 60MHz)
+		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
 		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;//invert signal as anain op-amp is inverting
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
