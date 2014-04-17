@@ -16,7 +16,9 @@
 
 
 
-DigitalCounterInput::DigitalCounterInput()
+DigitalCounterInput::DigitalCounterInput():
+	PWMIn1(MAX_PWM_PERIOD_TIME),
+	PWMIn2(MAX_PWM2_PERIOD_TIME)
 {
 	countMode=None;
 	setCountMode( countMode );
@@ -190,7 +192,7 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 
 		/* SECOND PWM ON TIM1 */
-		TIM_PrescalerConfig(TIM1, 2, TIM_PSCReloadMode_Immediate);//set clock divided by 2 as TIM1 runs 120MHz as TIM2 only 60MHz
+		TIM_PrescalerConfig(TIM1, 1, TIM_PSCReloadMode_Immediate);//set clock divided by 2 (prescaler value 1) as TIM1 runs 120MHz as TIM2 only 60MHz
 	    /* TI4 Configuration */
 		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
@@ -271,57 +273,19 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 }
 
-s32 DigitalCounterInput::getCounter()
+s32 DigitalCounterInput::getCounter( int sourceNr )
 {
-	sys.setDebugParam(4,TIM_GetCapture3( TIM1 ));
-	sys.setDebugParam(5,TIM_GetCapture4( TIM1 ));
-	sys.setDebugParam(6,TIM_GetCounter( TIM1 ));
-
 	if (countMode == PulseTrain || countMode == Quadrature)
 	{
 		return TIM_GetCounter( TIM2 );
 	}
 	else if (countMode == PWM)
 	{
-		static u32 prevPeriod = 0, prevPulselength = 0;
-		static bool noPWMsignal = true;
-
-		/* Refer STM32F2xx reference manual 14.3.6 PWM input mode.*/
-		u32 period = TIM_GetCapture2( TIM2 );
-		u32 pulselength = TIM_GetCapture1( TIM2 );
-		u32 timerCounter = TIM_GetCounter( TIM2 );
-
-		//if PWM in is stuck high or no edges present, then timer counter keeps counting and capture regs may have old values
-		//so set PWM signal status bad
-		if (timerCounter > MAX_PWM_PERIOD_TIME || period <= 0
-				|| period > MAX_PWM_PERIOD_TIME || pulselength > period)
-		{
-			//clearing capture registers seems impossible on HW so workaround by software
-			noPWMsignal = true; //disable pwm readout on this cycle
-		}
-		else //check if edges now available
-		{
-			//if signal edges detected, assume counter to be reset and edge times changed due to noise at least
-			if ((period != prevPeriod || prevPulselength != pulselength)
-					&& timerCounter < MAX_PWM_PERIOD_TIME)
-			{
-				noPWMsignal = false; //assume PWM signal good
-			}
-		}
-
-		prevPeriod = period;
-		prevPulselength = pulselength;
-
-		if (noPWMsignal == false)
-		{
-			/* Duty cycle computation */
-			//s32 DutyCycle = s32((uint64_t(pulselength) * 100000ULL) / (period)); //0-100000 scale
-			s32 DutyCycle = s32(
-					(uint64_t( pulselength ) * 32786ULL) / (period) ) - 16384; //-16k..16k scale
-			return DutyCycle;
-		}
-		else
-			//cant div by zero, probably no input edges present
+		if(sourceNr==0)
+			return PWMIn1.computePWMInput(TIM_GetCapture2( TIM2 ),TIM_GetCapture1( TIM2 ),TIM_GetCounter( TIM2 ));
+		else if(sourceNr==1)
+			return PWMIn2.computePWMInput(TIM_GetCapture3( TIM1 ),TIM_GetCapture4( TIM1 ),TIM_GetCounter( TIM1 ));
+		else//invalid sourcenr
 			return 0;
 	}
 	else if(countMode==None)
@@ -344,6 +308,49 @@ void DigitalCounterInput::setCounter( s32 newvalue )
 	{
 
 	}
+}
+
+
+PWMInputComputing::PWMInputComputing( u32 maxPulselength )
+{
+	this->maxCounterValue=maxPulselength;
+	noPWMsignal=true;
+}
+
+s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCounter )
+{
+	//if PWM in is stuck high or no edges present, then timer counter keeps counting and capture regs may have old values
+	//so set PWM signal status bad
+	if (timerCounter > maxCounterValue || period <= 0
+			|| period > maxCounterValue || pulselength > period)
+	{
+		//clearing capture registers seems impossible on HW so workaround by software
+		noPWMsignal = true; //disable pwm readout on this cycle
+	}
+	else //check if edges now available
+	{
+		//if signal edges detected, assume counter to be reset and edge times changed due to noise at least
+		if ((period != prevPeriod || prevPulselength != pulselength)
+				&& timerCounter < maxCounterValue)
+		{
+			noPWMsignal = false; //assume PWM signal good
+		}
+	}
+
+	prevPeriod = period;
+	prevPulselength = pulselength;
+
+	if (noPWMsignal == false)
+	{
+		/* Duty cycle computation */
+		//s32 DutyCycle = s32((uint64_t(pulselength) * 100000ULL) / (period)); //0-100000 scale
+		s32 DutyCycle = s32(
+				(uint64_t( pulselength ) * 32786ULL) / (period) ) - 16384; //-16k..16k scale
+		return DutyCycle;
+	}
+	else
+		//cant div by zero, probably no input edges present
+		return 0;
 }
 
 
