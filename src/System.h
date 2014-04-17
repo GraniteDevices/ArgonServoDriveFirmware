@@ -39,6 +39,8 @@
  *      -production test voltage limits updated accordingly
  *      -sending clear faults cmd now clears also fault location 2 register
  *      -initial resolver support ready
+ * 1010(WIP) -implement second PWM setpoint input, uses analog input pins, see digitalcounterinput.cpp for usage
+ * 		-change dscpowertask to use TIM8 instead of TIM1 (TODO: verify by measuring)
  */
 
 /*
@@ -46,7 +48,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1009
+#define FW_VERSION 1010
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1000
 
 #define COMMAND_QUEUE1_SIZE 256
