@@ -194,25 +194,25 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
 		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
-		TIM_ICInit(TIM4, &TIM_ICInitStructure);
+		TIM_ICInit(TIM1, &TIM_ICInitStructure);
 	    /* TI3 Configuration */
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_3;
 		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_IndirectTI;
-		TIM_ICInit(TIM4, &TIM_ICInitStructure);
+		TIM_ICInit(TIM1, &TIM_ICInitStructure);
 
 		/* Select the TIM4 Input Trigger: ETR */
-		TIM_ETRConfig(TIM4,TIM_ExtTRGPSC_OFF ,TIM_ExtTRGPolarity_Inverted,
+		TIM_ETRConfig(TIM1,TIM_ExtTRGPSC_OFF ,TIM_ExtTRGPolarity_Inverted,
 				TIM_ICInitStructure.TIM_ICFilter);
-		TIM_SelectInputTrigger( TIM2, TIM_TS_ETRF );
+		TIM_SelectInputTrigger( TIM1, TIM_TS_ETRF );
 
 		/* Select the slave Mode: Reset Mode */
-		TIM_SelectSlaveMode( TIM4, TIM_SlaveMode_Reset );
-		TIM_SelectMasterSlaveMode( TIM4, TIM_MasterSlaveMode_Enable );
+		TIM_SelectSlaveMode( TIM1, TIM_SlaveMode_Reset );
+		TIM_SelectMasterSlaveMode( TIM1, TIM_MasterSlaveMode_Enable );
 
 
 		/* TIM enable counter */
-		TIM_Cmd( TIM4, ENABLE );
+		TIM_Cmd( TIM1, ENABLE );
 
 
 #if 0

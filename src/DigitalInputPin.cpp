@@ -139,7 +139,7 @@ DigitalInputPin::DigitalInputPin( InputPin inPin, System *parentSys )
 	case Ana1:
 		/*
 		 * TODO better use analog value and threshold instead of digital value when reading with inputState
-		 * Anains are also routed to TIM4 inputs, use them to read digital values. Threshold voltage for 0->1 seems to be about 0V
+		 * Anains are also routed to TIM1 inputs, use them to read digital values. Threshold voltage for 0->1 seems to be about 0V
 		 * and 1->0 about -0.95V. 3.3V CMOS output wired between GND and AIN+ (- floating) generates swing of -1.35 to +1.35 so
 		 * it barely works as proper source. Better connect - input to about +2 VDC though.
 		 */
