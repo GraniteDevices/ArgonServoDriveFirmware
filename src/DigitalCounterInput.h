@@ -31,7 +31,8 @@
 #define PULSETRAIN_DIR_EXTI_IRQ EXTI1_IRQn
 
 
-//in timer cycles @ 60MHz. 100k=600Hz
+//TIM2 runs at 60MHz clock (ABP bus clock x2)
+//following value sets minimum freq for valid PWM input in timer cycles @ 60MHz. 100k=600Hz min
 #define MAX_PWM_PERIOD_TIME 100000
 
 

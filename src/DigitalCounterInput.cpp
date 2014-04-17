@@ -14,6 +14,8 @@
 #include "globals.h"
 #include "utils.h"
 
+
+
 DigitalCounterInput::DigitalCounterInput()
 {
 	countMode=None;
@@ -47,9 +49,15 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 	countMode = mode;
 
+	//TIM2:pwm1, step dir, quadrature sources
 	GPIO_PinAFConfig( GPIOA, GPIO_PinSource0, GPIO_AF_TIM2 );
 	GPIO_PinAFConfig( GPIOA, GPIO_PinSource1, GPIO_AF_TIM2 );
 	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM2, ENABLE );
+
+	//TIM1:connected to analog inputs (anain2=TIM1 CH4 anain1=TIM1 ETR), used for second pwm input
+	GPIO_PinAFConfig( GPIOA, GPIO_PinSource11, GPIO_AF_TIM1 );
+	GPIO_PinAFConfig( GPIOA, GPIO_PinSource12, GPIO_AF_TIM1 );
+	RCC_APB1PeriphClockCmd( RCC_APB2Periph_TIM1, ENABLE);
 
 
 	if (countMode == PulseTrain)
@@ -150,6 +158,7 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 	}
 	else if (countMode == PWM) //capture PWM duty cycle in HSIN2
 	{
+		/* FIRST PWM INPUT ON TIM1 */
 		/* Disable DIR pin interrupt (just in case pulsetrain mode was active previously) */
 		NVIC_InitTypeDef NVIC_InitStructure;
 		NVIC_InitStructure.NVIC_IRQChannel = PULSETRAIN_DIR_EXTI_IRQ; //dir connected to BP11 so its EXTI 10-15 (11)
@@ -178,6 +187,45 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		TIM_Cmd( TIM2, ENABLE );
 
 		setCounter(0);
+
+
+		/* SECOND PWM ON TIM1 */
+	    /* TI4 Configuration */
+		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+		TIM_ICInit(TIM4, &TIM_ICInitStructure);
+	    /* TI3 Configuration */
+		TIM_ICInitStructure.TIM_Channel = TIM_Channel_3;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
+		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_IndirectTI;
+		TIM_ICInit(TIM4, &TIM_ICInitStructure);
+
+		/* Select the TIM4 Input Trigger: ETR */
+		TIM_ETRConfig(TIM4,TIM_ExtTRGPSC_OFF ,TIM_ExtTRGPolarity_Inverted,
+				TIM_ICInitStructure.TIM_ICFilter);
+		TIM_SelectInputTrigger( TIM2, TIM_TS_ETRF );
+
+		/* Select the slave Mode: Reset Mode */
+		TIM_SelectSlaveMode( TIM4, TIM_SlaveMode_Reset );
+		TIM_SelectMasterSlaveMode( TIM4, TIM_MasterSlaveMode_Enable );
+
+
+		/* TIM enable counter */
+		TIM_Cmd( TIM4, ENABLE );
+
+
+#if 0
+	    TI4_Config(TIM4, TIM_ICPolarity_Rising, TIM_ICSelection_DirectTI, 8);
+	    /* Set the Input Capture Prescaler value */
+	    TIM_SetIC4Prescaler(TIM4, TIM_ICPSC_DIV1);
+	    /* TI3 Configuration */
+	    TI3_Config(TIM4, TIM_ICPolarity_Falling, TIM_ICSelection_IndirectTI, 8);
+	    /* Set the Input Capture Prescaler value */
+	    TIM_SetIC3Prescaler(TIM4, TIM_ICPSC_DIV1);
+#endif
+
+
 
 	}
 	else if (countMode == Quadrature)
@@ -223,6 +271,9 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 s32 DigitalCounterInput::getCounter()
 {
+	sys.setDebugParam(4,TIM_GetCapture3( TIM4 ));
+	sys.setDebugParam(5,TIM_GetCapture4( TIM4 ));
+
 	if (countMode == PulseTrain || countMode == Quadrature)
 	{
 		return TIM_GetCounter( TIM2 );
@@ -291,4 +342,6 @@ void DigitalCounterInput::setCounter( s32 newvalue )
 
 	}
 }
+
+
 
