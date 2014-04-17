@@ -191,19 +191,20 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 		/* SECOND PWM ON TIM1 */
 	    /* TI4 Configuration */
+		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV2;//use divider 2 as TIM1 runs at 120MHz (TIM2 at 60MHz)
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
-		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;//invert signal as anain op-amp is inverting
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
 		TIM_ICInit(TIM1, &TIM_ICInitStructure);
 	    /* TI3 Configuration */
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_3;
-		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;//invert signal as anain op-amp is inverting
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_IndirectTI;
 		TIM_ICInit(TIM1, &TIM_ICInitStructure);
 
 		/* Select the TIM4 Input Trigger: ETR */
-		TIM_ETRConfig(TIM1,TIM_ExtTRGPSC_OFF ,TIM_ExtTRGPolarity_Inverted,
-				TIM_ICInitStructure.TIM_ICFilter);
+		TIM_ETRConfig(TIM1,TIM_ExtTRGPSC_OFF ,TIM_ExtTRGPolarity_NonInverted,
+				TIM_ICInitStructure.TIM_ICFilter);//invert signal as anain op-amp is inverting
 		TIM_SelectInputTrigger( TIM1, TIM_TS_ETRF );
 
 		/* Select the slave Mode: Reset Mode */
