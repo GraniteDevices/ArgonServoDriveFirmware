@@ -599,8 +599,6 @@ void System::updateMechBrakeState()
 	brakeReleaseDelay.setDelay((float)getBrakePoweronReleaseDelayMs()/1000.0);
 	bool brakerelease;
 
-	setDebugParam(4,getBrakePoweronReleaseDelayMs());
-
 	if( (GCStatusBits & STAT_BRAKING) || (FaultBitsReg&FATAL_STM32_FW_FAULTS) )
 		brakerelease=false;
 	else
