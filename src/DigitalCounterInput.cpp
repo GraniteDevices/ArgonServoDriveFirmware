@@ -68,11 +68,11 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		//skip initializing IO clock and direction as theyre done DigitalInputPin class
 		RCC_APB2PeriphClockCmd( RCC_APB2Periph_SYSCFG, ENABLE );
 
-		/* Connect Button EXTI (Ext inq) Line to Button GPIO Pin */
+		/* Connect Button EXTI (Ext inq) Line to GPIO Pin */
 		SYSCFG_EXTILineConfig( PULSETRAIN_DIR_EXTI_PORT_SOURCE,
 				PULSETRAIN_DIR_EXTI_PIN_SOURCE );
 
-		/* Configure Button EXTI line */
+		/* Configure EXTI line */
 		EXTI_InitStructure.EXTI_Line = PULSETRAIN_DIR_EXTI_LINE;
 		EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 		EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
