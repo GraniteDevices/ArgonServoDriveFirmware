@@ -271,8 +271,9 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 s32 DigitalCounterInput::getCounter()
 {
-	sys.setDebugParam(4,TIM_GetCapture3( TIM4 ));
-	sys.setDebugParam(5,TIM_GetCapture4( TIM4 ));
+	sys.setDebugParam(4,TIM_GetCapture3( TIM1 ));
+	sys.setDebugParam(5,TIM_GetCapture4( TIM1 ));
+	sys.setDebugParam(6,TIM_GetCounter( TIM1 ));
 
 	if (countMode == PulseTrain || countMode == Quadrature)
 	{
