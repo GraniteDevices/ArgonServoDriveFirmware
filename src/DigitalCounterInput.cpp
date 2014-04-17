@@ -178,7 +178,7 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		TIM_ICInitStructure.TIM_ICFilter = 8;
 		TIM_PWMIConfig( TIM2, &TIM_ICInitStructure );
 
-		/* Select the TIM2 Input Trigger: TI1FP1 */
+		/* Select the TIM2 Input Trigger: TI2FP2 */
 		TIM_SelectInputTrigger( TIM2, TIM_TS_TI2FP2 );
 
 		/* Select the slave Mode: Reset Mode */
@@ -191,7 +191,16 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		setCounter(0);
 
 
-		/* SECOND PWM ON TIM1 */
+		/* SECOND PWM ON TIM1  (done on lower level than TIM2 because ST perpih library doesn't implement it for TI3-4) */
+
+		/* Usage of second pwm input:
+		 *
+		 * Tie analog inputs 1&2 together and feed PWM to them.
+		 * Usage of 3.3V source barely stable when connected to pos inputs and neg inputs biased to DC 2.3V vs GND,
+		 * Recommend at least 5V signals with 3-3.5V bias.
+		 */
+
+
 		TIM_PrescalerConfig(TIM1, 1, TIM_PSCReloadMode_Immediate);//set clock divided by 2 (prescaler value 1) as TIM1 runs 120MHz as TIM2 only 60MHz
 	    /* TI4 Configuration */
 		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
