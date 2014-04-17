@@ -14,7 +14,11 @@
 #include "globals.h"
 #include "utils.h"
 
-DigitalCounterInput::DigitalCounterInput()
+
+
+DigitalCounterInput::DigitalCounterInput():
+	PWMIn1(MAX_PWM_PERIOD_TIME),
+	PWMIn2(MAX_PWM2_PERIOD_TIME)
 {
 	countMode=None;
 	setCountMode( countMode );
@@ -47,9 +51,15 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 	countMode = mode;
 
+	//TIM2:pwm1, step dir, quadrature sources
 	GPIO_PinAFConfig( GPIOA, GPIO_PinSource0, GPIO_AF_TIM2 );
 	GPIO_PinAFConfig( GPIOA, GPIO_PinSource1, GPIO_AF_TIM2 );
 	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM2, ENABLE );
+
+	//TIM1:connected to analog inputs (anain2=TIM1 CH4 anain1=TIM1 ETR), used for second pwm input
+	GPIO_PinAFConfig( GPIOA, GPIO_PinSource11, GPIO_AF_TIM1 );
+	GPIO_PinAFConfig( GPIOA, GPIO_PinSource12, GPIO_AF_TIM1 );
+	RCC_APB1PeriphClockCmd( RCC_APB2Periph_TIM1, ENABLE);
 
 
 	if (countMode == PulseTrain)
@@ -60,11 +70,11 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		//skip initializing IO clock and direction as theyre done DigitalInputPin class
 		RCC_APB2PeriphClockCmd( RCC_APB2Periph_SYSCFG, ENABLE );
 
-		/* Connect Button EXTI (Ext inq) Line to Button GPIO Pin */
+		/* Connect Button EXTI (Ext inq) Line to GPIO Pin */
 		SYSCFG_EXTILineConfig( PULSETRAIN_DIR_EXTI_PORT_SOURCE,
 				PULSETRAIN_DIR_EXTI_PIN_SOURCE );
 
-		/* Configure Button EXTI line */
+		/* Configure EXTI line */
 		EXTI_InitStructure.EXTI_Line = PULSETRAIN_DIR_EXTI_LINE;
 		EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 		EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
@@ -150,6 +160,7 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 	}
 	else if (countMode == PWM) //capture PWM duty cycle in HSIN2
 	{
+		/* FIRST PWM INPUT ON TIM1 */
 		/* Disable DIR pin interrupt (just in case pulsetrain mode was active previously) */
 		NVIC_InitTypeDef NVIC_InitStructure;
 		NVIC_InitStructure.NVIC_IRQChannel = PULSETRAIN_DIR_EXTI_IRQ; //dir connected to BP11 so its EXTI 10-15 (11)
@@ -167,7 +178,7 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		TIM_ICInitStructure.TIM_ICFilter = 8;
 		TIM_PWMIConfig( TIM2, &TIM_ICInitStructure );
 
-		/* Select the TIM2 Input Trigger: TI1FP1 */
+		/* Select the TIM2 Input Trigger: TI2FP2 */
 		TIM_SelectInputTrigger( TIM2, TIM_TS_TI2FP2 );
 
 		/* Select the slave Mode: Reset Mode */
@@ -178,6 +189,56 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		TIM_Cmd( TIM2, ENABLE );
 
 		setCounter(0);
+
+
+		/* SECOND PWM ON TIM1  (done on lower level than TIM2 because ST perpih library doesn't implement it for TI3-4) */
+
+		/* Usage of second pwm input:
+		 *
+		 * Tie analog inputs 1&2 together and feed PWM to them.
+		 * Usage of 3.3V source barely stable when connected to pos inputs and neg inputs biased to DC 2.3V vs GND,
+		 * Recommend at least 5V signals with 3-3.5V bias.
+		 */
+
+
+		TIM_PrescalerConfig(TIM1, 1, TIM_PSCReloadMode_Immediate);//set clock divided by 2 (prescaler value 1) as TIM1 runs 120MHz as TIM2 only 60MHz
+	    /* TI4 Configuration */
+		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;//invert signal as anain op-amp is inverting
+		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+		TIM_ICInit(TIM1, &TIM_ICInitStructure);
+	    /* TI3 Configuration */
+		TIM_ICInitStructure.TIM_Channel = TIM_Channel_3;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;//invert signal as anain op-amp is inverting
+		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_IndirectTI;
+		TIM_ICInit(TIM1, &TIM_ICInitStructure);
+
+		/* Select the TIM4 Input Trigger: ETR */
+		TIM_ETRConfig(TIM1,TIM_ExtTRGPSC_OFF ,TIM_ExtTRGPolarity_NonInverted,
+				TIM_ICInitStructure.TIM_ICFilter);//invert signal as anain op-amp is inverting
+		TIM_SelectInputTrigger( TIM1, TIM_TS_ETRF );
+
+		/* Select the slave Mode: Reset Mode */
+		TIM_SelectSlaveMode( TIM1, TIM_SlaveMode_Reset );
+		TIM_SelectMasterSlaveMode( TIM1, TIM_MasterSlaveMode_Enable );
+
+
+		/* TIM enable counter */
+		TIM_Cmd( TIM1, ENABLE );
+
+
+#if 0
+	    TI4_Config(TIM4, TIM_ICPolarity_Rising, TIM_ICSelection_DirectTI, 8);
+	    /* Set the Input Capture Prescaler value */
+	    TIM_SetIC4Prescaler(TIM4, TIM_ICPSC_DIV1);
+	    /* TI3 Configuration */
+	    TI3_Config(TIM4, TIM_ICPolarity_Falling, TIM_ICSelection_IndirectTI, 8);
+	    /* Set the Input Capture Prescaler value */
+	    TIM_SetIC3Prescaler(TIM4, TIM_ICPSC_DIV1);
+#endif
+
+
 
 	}
 	else if (countMode == Quadrature)
@@ -221,7 +282,7 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 }
 
-s32 DigitalCounterInput::getCounter()
+s32 DigitalCounterInput::getCounter( int sourceNr )
 {
 	if (countMode == PulseTrain || countMode == Quadrature)
 	{
@@ -229,45 +290,11 @@ s32 DigitalCounterInput::getCounter()
 	}
 	else if (countMode == PWM)
 	{
-		static u32 prevPeriod = 0, prevPulselength = 0;
-		static bool noPWMsignal = true;
-
-		/* Refer STM32F2xx reference manual 14.3.6 PWM input mode.*/
-		u32 period = TIM_GetCapture2( TIM2 );
-		u32 pulselength = TIM_GetCapture1( TIM2 );
-		u32 timerCounter = TIM_GetCounter( TIM2 );
-
-		//if PWM in is stuck high or no edges present, then timer counter keeps counting and capture regs may have old values
-		//so set PWM signal status bad
-		if (timerCounter > MAX_PWM_PERIOD_TIME || period <= 0
-				|| period > MAX_PWM_PERIOD_TIME || pulselength > period)
-		{
-			//clearing capture registers seems impossible on HW so workaround by software
-			noPWMsignal = true; //disable pwm readout on this cycle
-		}
-		else //check if edges now available
-		{
-			//if signal edges detected, assume counter to be reset and edge times changed due to noise at least
-			if ((period != prevPeriod || prevPulselength != pulselength)
-					&& timerCounter < MAX_PWM_PERIOD_TIME)
-			{
-				noPWMsignal = false; //assume PWM signal good
-			}
-		}
-
-		prevPeriod = period;
-		prevPulselength = pulselength;
-
-		if (noPWMsignal == false)
-		{
-			/* Duty cycle computation */
-			//s32 DutyCycle = s32((uint64_t(pulselength) * 100000ULL) / (period)); //0-100000 scale
-			s32 DutyCycle = s32(
-					(uint64_t( pulselength ) * 32786ULL) / (period) ) - 16384; //-16k..16k scale
-			return DutyCycle;
-		}
-		else
-			//cant div by zero, probably no input edges present
+		if(sourceNr==0)
+			return PWMIn1.computePWMInput(TIM_GetCapture2( TIM2 ),TIM_GetCapture1( TIM2 ),TIM_GetCounter( TIM2 ));
+		else if(sourceNr==1)
+			return PWMIn2.computePWMInput(TIM_GetCapture3( TIM1 ),TIM_GetCapture4( TIM1 ),TIM_GetCounter( TIM1 ));
+		else//invalid sourcenr
 			return 0;
 	}
 	else if(countMode==None)
@@ -291,4 +318,49 @@ void DigitalCounterInput::setCounter( s32 newvalue )
 
 	}
 }
+
+
+PWMInputComputing::PWMInputComputing( u32 maxPulselength )
+{
+	this->maxCounterValue=maxPulselength;
+	noPWMsignal=true;
+}
+
+s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCounter )
+{
+	//if PWM in is stuck high or no edges present, then timer counter keeps counting and capture regs may have old values
+	//so set PWM signal status bad
+	if (timerCounter > maxCounterValue || period <= 0
+			|| period > maxCounterValue || pulselength > period)
+	{
+		//clearing capture registers seems impossible on HW so workaround by software
+		noPWMsignal = true; //disable pwm readout on this cycle
+	}
+	else //check if edges now available
+	{
+		//if signal edges detected, assume counter to be reset and edge times changed due to noise at least
+		if ((period != prevPeriod || prevPulselength != pulselength)
+				&& timerCounter < maxCounterValue)
+		{
+			noPWMsignal = false; //assume PWM signal good
+		}
+	}
+
+	prevPeriod = period;
+	prevPulselength = pulselength;
+
+	if (noPWMsignal == false)
+	{
+		/* Duty cycle computation */
+		//s32 DutyCycle = s32((uint64_t(pulselength) * 100000ULL) / (period)); //0-100000 scale
+		s32 DutyCycle = s32(
+				(uint64_t( pulselength ) * 32786ULL) / (period) ) - 16384; //-16k..16k scale
+		return DutyCycle;
+	}
+	else
+		//cant div by zero, probably no input edges present
+		return 0;
+}
+
+
 
