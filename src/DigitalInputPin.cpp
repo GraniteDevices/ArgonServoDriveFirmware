@@ -136,19 +136,25 @@ DigitalInputPin::DigitalInputPin( InputPin inPin, System *parentSys )
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 		pullup=false;
 		break;
-	case Ana1: //FIXME better analog value and threshold instead of digital value when reading with inputState
-		pin = GPIO_Pin_0;
-		port = GPIOC;
-		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+	case Ana1:
+		/*
+		 * TODO better use analog value and threshold instead of digital value when reading with inputState
+		 * Anains are also routed to TIM4 inputs, use them to read digital values. Threshold voltage for 0->1 seems to be about 0V
+		 * and 1->0 about -0.95V. 3.3V CMOS output wired between GND and AIN+ (- floating) generates swing of -1.35 to +1.35 so
+		 * it barely works as proper source. Better connect - input to about +2 VDC though.
+		 */
+		pin = GPIO_Pin_12;
+		port = GPIOA; //was originally GPIOC of anain, didnd't seem to work
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 		pullup=false;
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;//AF so TIM can use this input still
 		break;
-	case Ana2: //FIXME better analog value and threshold instead of digital value when reading with inputState
-		pin = GPIO_Pin_1;
-		port = GPIOC;
-		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+	case Ana2: //TODO better use analog value and threshold instead of digital value when reading with inputState
+		pin = GPIO_Pin_11;
+		port = GPIOA;
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 		pullup=false;
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;//AF so TIM can use this input still
 		break;
 	case HSIN1:
 		pin = GPIO_Pin_0;
