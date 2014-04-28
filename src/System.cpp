@@ -306,7 +306,16 @@ s32 System::getInputReferenceValue()
 		return digitalCounterInput.getCounter();
 		break;
 	case PWM:
-		return digitalCounterInput.getCounter();
+	{
+		s32 pwm2=digitalCounterInput.getCounter(1);
+		s32 dutylimit=(pwm2+16383)/2;
+		s32 torque=digitalCounterInput.getCounter(0);
+		setDebugParam(4,dutylimit);
+		setDebugParam(5,torque);
+		setDebugParam(6,pwm2);
+		return ((((u32)dutylimit)<<15)&0x3fff8000) | (((u32)torque)&0x7fff) ;
+		//return digitalCounterInput.getCounter();
+	}
 		break;
 	case Analog:
 		if(physIO.getAnalogInput2()<4915) //non inverted analog1 if anain2<3.0V

@@ -355,6 +355,16 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 		//s32 DutyCycle = s32((uint64_t(pulselength) * 100000ULL) / (period)); //0-100000 scale
 		s32 DutyCycle = s32(
 				(uint64_t( pulselength ) * 32786ULL) / (period) ) - 16384; //-16k..16k scale
+
+		//scale so that 5..95% duty scales to 0..100% output
+		DutyCycle*=9102;
+		DutyCycle/=8192;
+		//limit to signed 15 bit value
+		if(DutyCycle>16383)
+			DutyCycle=16383;
+		if(DutyCycle<-16383)
+			DutyCycle=-16383;
+
 		return DutyCycle;
 	}
 	else

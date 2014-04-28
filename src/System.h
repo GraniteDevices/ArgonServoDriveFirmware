@@ -43,12 +43,17 @@
  * 		-change dscpowertask to use TIM8 instead of TIM1 (TODO: verify by measuring)
  */
 
+/*special versions
+ * 1610 -a branch from 1010 - a variable duty cycle limited torque mode using two PWM setpoint inputs.
+ * 		 PWM1=torque, PWM2=duty cycle limit. Both PWM give full output range when input duty is 5-95%.
+ *
+ * */
 /*
  * TODO & bugs
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1010
+#define FW_VERSION 1610
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1000
 
 #define COMMAND_QUEUE1_SIZE 256
