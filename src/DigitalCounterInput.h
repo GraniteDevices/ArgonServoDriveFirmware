@@ -41,7 +41,7 @@ class PWMInputComputing
 {
 public:
 	PWMInputComputing(u32 maxPulselength);
-	s32 computePWMInput( u32 period, u32 pulselength, u32 timerCounter );
+	s32 computePWMInput( u32 period, u32 pulselength, u32 timerCounter, int sourcenr );
 
 private:
 	bool noPWMsignal;
