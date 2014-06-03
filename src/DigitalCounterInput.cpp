@@ -181,6 +181,12 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 		TIM_ICInitStructure.TIM_ICFilter = 8;
 		TIM_PWMIConfig( TIM2, &TIM_ICInitStructure );
 
+		//TIM IC1 not initialized? it's using defaults?
+		/*//now is
+		TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
+		TIM_PWMIConfig( TIM2, &TIM_ICInitStructure );*/
+
 		/* Select the TIM2 Input Trigger: TI2FP2 */
 		TIM_SelectInputTrigger( TIM2, TIM_TS_TI2FP2 );
 
@@ -206,19 +212,21 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 		TIM_PrescalerConfig(TIM1, 1, TIM_PSCReloadMode_Immediate);//set clock divided by 2 (prescaler value 1) as TIM1 runs 120MHz as TIM2 only 60MHz
 	    /* TI4 Configuration */
-		TIM_ICInitStructure.TIM_ICFilter = 15;//anaing rise/fall times too slow causing clitchy edge readout. trying to filter out them at covert values. max filter helps a little
-		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV2;//reduce div to make filtering stronger
+		TIM_ICInitStructure.TIM_ICFilter = 4;
+		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;//must be 1 to capture all edges
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
 		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;//invert signal as anain op-amp is inverting
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
 		TIM_ICInit(TIM1, &TIM_ICInitStructure);
 	    /* TI3 Configuration */
+		TIM_ICInitStructure.TIM_ICFilter = 4;
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_3;
 		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;//invert signal as anain op-amp is inverting
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_IndirectTI;
 		TIM_ICInit(TIM1, &TIM_ICInitStructure);
 
-		/* Select the TIM4 Input Trigger: ETR */
+		/* Select the TIM4? Input Trigger: ETR */
+		TIM_ICInitStructure.TIM_ICFilter = 10;//set longer delay to reset to avoid resetting before samplings occur (causing clitchy output)
 		TIM_ETRConfig(TIM1,TIM_ExtTRGPSC_OFF ,TIM_ExtTRGPolarity_NonInverted,
 				TIM_ICInitStructure.TIM_ICFilter);//invert signal as anain op-amp is inverting
 		TIM_SelectInputTrigger( TIM1, TIM_TS_ETRF );
@@ -343,6 +351,7 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 		//clearing capture registers seems impossible on HW so workaround by software
 		noPWMsignal = true; //disable pwm readout on this cycle
 
+		//NOT AN ISSUE ANY MORE, but keep it here just in case
 		if(sourcenr==1)//special clitch filter for anain pwm input to elimiate slow slew edge read clitches
 		{
 			static u32 max=0;
@@ -350,6 +359,8 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 			if(nrOfConsequentErrors>max)//debug
 				max=nrOfConsequentErrors;
 			sys.setDebugParam(6,max);
+//			sys.setDebugParam(4,period);
+//			sys.setDebugParam(5,pulselength);
 
 			if(nrOfConsequentErrors>10)
 			{
