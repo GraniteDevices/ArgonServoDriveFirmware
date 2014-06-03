@@ -35,7 +35,7 @@
 //following value sets minimum freq for valid PWM input in timer cycles @ 60MHz. 100k=600Hz min
 #define MAX_PWM_PERIOD_TIME 100000
 //PWM in 2 uses TIM1 with 16 bit counters, so can't use that high value. 24000=2.5kHz minimum pwm freq
-#define MAX_PWM2_PERIOD_TIME 24000
+#define MAX_PWM2_PERIOD_TIME (24000)
 
 class PWMInputComputing
 {
@@ -43,10 +43,14 @@ public:
 	PWMInputComputing(u32 maxPulselength);
 	s32 computePWMInput( u32 period, u32 pulselength, u32 timerCounter, int sourcenr );
 
+	s32 safeReturnValue;//value that is returned on errors
+
 private:
 	bool noPWMsignal;
 	u32 maxCounterValue;//for loss of pwm signal detection
 	u32 prevPulselength, prevPeriod;
+	s32 prevDutyOut;
+	u32 nrOfConsequentErrors;
 };
 
 

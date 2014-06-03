@@ -201,7 +201,7 @@ void DMA1_Stream5_IRQHandler()
  * @param  None
  * @retval None
  */
-void EXTI1_IRQHandler( void )
+void EXTI3_IRQHandler( void )
 {
 	//NVIC_InitTypeDef NVIC_InitStructure;
 

@@ -22,6 +22,9 @@ DigitalCounterInput::DigitalCounterInput():
 {
 	countMode=None;
 	setCountMode( countMode );
+
+	PWMIn1.safeReturnValue=0;
+	PWMIn2.safeReturnValue=-16383;//duty cycle limiter FW mod
 }
 
 DigitalCounterInput::~DigitalCounterInput()
@@ -203,7 +206,8 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 		TIM_PrescalerConfig(TIM1, 1, TIM_PSCReloadMode_Immediate);//set clock divided by 2 (prescaler value 1) as TIM1 runs 120MHz as TIM2 only 60MHz
 	    /* TI4 Configuration */
-		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+		TIM_ICInitStructure.TIM_ICFilter = 15;//anaing rise/fall times too slow causing clitchy edge readout. trying to filter out them at covert values. max filter helps a little
+		TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV2;//reduce div to make filtering stronger
 		TIM_ICInitStructure.TIM_Channel = TIM_Channel_4;
 		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;//invert signal as anain op-amp is inverting
 		TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
@@ -291,9 +295,9 @@ s32 DigitalCounterInput::getCounter( int sourceNr )
 	else if (countMode == PWM)
 	{
 		if(sourceNr==0)
-			return PWMIn1.computePWMInput(TIM_GetCapture2( TIM2 ),TIM_GetCapture1( TIM2 ),TIM_GetCounter( TIM2 ));
+			return PWMIn1.computePWMInput(TIM_GetCapture2( TIM2 ),TIM_GetCapture1( TIM2 ),TIM_GetCounter( TIM2 ),sourceNr);
 		else if(sourceNr==1)
-			return PWMIn2.computePWMInput(TIM_GetCapture3( TIM1 ),TIM_GetCapture4( TIM1 ),TIM_GetCounter( TIM1 ));
+			return PWMIn2.computePWMInput(TIM_GetCapture3( TIM1 ),TIM_GetCapture4( TIM1 ),TIM_GetCounter( TIM1 ),sourceNr);
 		else//invalid sourcenr
 			return 0;
 	}
@@ -324,9 +328,12 @@ PWMInputComputing::PWMInputComputing( u32 maxPulselength )
 {
 	this->maxCounterValue=maxPulselength;
 	noPWMsignal=true;
+	nrOfConsequentErrors=0;
+	prevDutyOut=0;
 }
 
-s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCounter )
+
+s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCounter, int sourcenr )
 {
 	//if PWM in is stuck high or no edges present, then timer counter keeps counting and capture regs may have old values
 	//so set PWM signal status bad
@@ -335,6 +342,26 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 	{
 		//clearing capture registers seems impossible on HW so workaround by software
 		noPWMsignal = true; //disable pwm readout on this cycle
+
+		if(sourcenr==1)//special clitch filter for anain pwm input to elimiate slow slew edge read clitches
+		{
+			static u32 max=0;
+
+			if(nrOfConsequentErrors>max)//debug
+				max=nrOfConsequentErrors;
+			sys.setDebugParam(6,max);
+
+			if(nrOfConsequentErrors>10)
+			{
+				prevDutyOut-=64;
+				if(prevDutyOut<-16383)
+					prevDutyOut=-16383;//decay to safe value
+				//too many errors, return safe value
+				return prevDutyOut;//saturates to max safe for duty cycle limiter (safe choice), for other apps change this
+			}
+			nrOfConsequentErrors++;
+			return prevDutyOut;//return previous known good value
+		}
 	}
 	else //check if edges now available
 	{
@@ -343,6 +370,7 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 				&& timerCounter < maxCounterValue)
 		{
 			noPWMsignal = false; //assume PWM signal good
+			nrOfConsequentErrors=0;
 		}
 	}
 
@@ -365,11 +393,12 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 		if(DutyCycle<-16383)
 			DutyCycle=-16383;
 
+		prevDutyOut=DutyCycle;
 		return DutyCycle;
 	}
 	else
 		//cant div by zero, probably no input edges present
-		return 0;
+		return safeReturnValue;
 }
 
 

@@ -50,7 +50,7 @@ void SysTick_Handler(void);
 //interrupt on DMA buffer sent via USART1
 void USART1_IRQHandler();
 void DMA1_Stream5_IRQHandler();
-void EXTI1_IRQHandler(void);
+void EXTI3_IRQHandler(void);
 
 void TIM4_IRQHandler(void);//System class high frequency task isr
 void ADC_IRQHandler(void);
