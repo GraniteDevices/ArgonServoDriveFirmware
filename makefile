@@ -247,7 +247,6 @@ CPPFLAGS += -MD -MP -MF .dep/$(@F).d
 
 
 all: $(OBJS) $(FULL_PRJ).elf $(FULL_PRJ).hex
-	#arm-none-eabi-objcopy -O binary -j .text -j .data $(FULL_PRJ).elf $(FULL_PRJ).bin
 	arm-none-eabi-objcopy -O binary  $(FULL_PRJ).elf $(FULL_PRJ).bin
 	$(SIZE) $(FULL_PRJ).elf
 	@echo text+data = FLASH usage, text = code, data = init vars, bss = RAM usage \(incl stack\), dec \& hex = total

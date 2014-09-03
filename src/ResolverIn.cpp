@@ -152,7 +152,7 @@ u16 ResolverIn::getAngle()
 
 	//detect loss of input voltage (resolver disconnected or miswired)
 	bool fault=false;
-	if((x*x+y*y)<0.1) fault=true;
+	if((x*x+y*y)<0.04) fault=true;
 	if(faultdelay.delayedTrue( fault ) )
 	{
 		parentSys->setFault(FLT_ENCODER,FAULTLOCATION_BASE+101);
