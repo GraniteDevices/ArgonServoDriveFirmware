@@ -13,6 +13,7 @@
 #include "Serial.h"
 #include "SMCommandQueue.h"
 #include "EncoderIn.h"
+#include "FanucSerialEncoderIn.h"
 #include "sm485.h"
 #include "DigitalCounterInput.h"
 #include "ResolverIn.h"
@@ -48,7 +49,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1010
+#define FW_VERSION 1077
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1000
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -247,7 +248,8 @@ public:
 	/*Feedback drivers*/
 	EncoderIn encoder;
 	ResolverIn resolver;
-	enum FeedbackDevice { None,Encoder,Resolver };
+	FanucSerialEncoderIn fanucSerialEncoder;
+	enum FeedbackDevice { None,Encoder,Resolver,SinCos,FanucSerialEncoder };
 
 
 	/* Drive input reference singal methods */

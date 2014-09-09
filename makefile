@@ -165,6 +165,7 @@ CPPSRC =  ./src/AnalogIn.cpp \
  ./src/DigitalCounterInput.cpp \
  ./src/LedBlinkTask.cpp \
  ./src/ResolverIn.cpp \
+ ./src/FanucSerialEncoderIn.cpp \
  ./src/System.cpp \
  ./src/ProductionTester.cpp
  

@@ -33,7 +33,7 @@ System::System() :
 				this, COMMAND_QUEUE2_SIZE, "cmdQ2Med" ), GCCmdStream2_HighPriority(
 				this, COMMAND_QUEUE2_SIZE, "cmdQS2High" ), GCCmdStream2_MediumPriority(
 				this, SYS_COMMAND_QUEUE_SIZE, "cmdQ2Low" ),
-				resolver(this)
+				resolver(this),fanucSerialEncoder(this)
 
 {
 	FaultBitsReg = 0;
@@ -342,6 +342,9 @@ s16 System::getVelocityFeedbackValue()
 	case Resolver:
 		uncompensatedVel=resolver.getVelocity();
 		break;
+	case FanucSerialEncoder:
+		uncompensatedVel=fanucSerialEncoder.getVelocity();
+		break;
 	case None:
 	default:
 		uncompensatedVel=0;
@@ -376,6 +379,9 @@ u16 System::getPositionFeedbackValue()
 		break;
 	case Resolver:
 		return resolver.getAngle();
+		break;
+	case FanucSerialEncoder:
+		return fanucSerialEncoder.getAngle();
 		break;
 	case None:
 	default:
@@ -655,6 +661,7 @@ bool System::readInitStateFromGC()
 	//set FB1 feedback device source
 	int fb1device=sys.getParameter(SMP_FB1_DEVICE_SELECTION, fail );
 	int fb2device=sys.getParameter(SMP_FB2_DEVICE_SELECTION, fail );
+	
 	switch(fb1device)
 	{
 	case 1:
@@ -663,6 +670,10 @@ bool System::readInitStateFromGC()
 	case 3:
 		positionFeedbackDevice=Resolver;
 		resolver.enableResolverRead(true);
+		break;
+	case 4://4 reserved fori SSI encoder, but use in dev purpose so can choose it from granity
+		positionFeedbackDevice=FanucSerialEncoder;
+		fanucSerialEncoder.enableRead(true);
 		break;
 	default:
 		setFault(FLT_ENCODER,FAULTLOCATION_BASE+201);//unsupported fb1 device choice
