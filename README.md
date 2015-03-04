@@ -16,24 +16,19 @@ HOW TO COMPILE
 Tools needed
 ------------
 
-a) Sourcery CodeBench Lite Edition for ARM EABI.
+a) GCC compiler for ARM
 
-This is the GCC compiler for ARM that actually compiles the source code
-
-- Go to http://www.mentor.com/embedded-software/sourcery-tools/sourcery-codebench/editions/lite-edition/
-- Follow the link "Download the EABI Release"
-- Register to Mentor site to get download access
-- Download and install the CodeSourcery Lite
+A GCC compiler toolchain for ARM is needed to compile the source code. Get GCC ARM toolchain from https://launchpad.net/gcc-arm-embedded
 
 b) GNU Make
 
-Source code of firmware and makefirmware utily is easily compiled by make command. For that, the GNU make must be installed in system. http://www.gnu.org/software/make/
+Source code of firmware and makefirmware utily is easily compiled by `make` command. For that, the GNU make must be installed in system. For Windows system, an easy way to obtain make is to install msys-make package from MinGW Installation Manager. MinGW site: http://www.mingw.org/ Download the installation manager at: http://sourceforge.net/projects/mingw/files/Installer/
 
-c) Makefirmware utily
+Tips
+----
+1) Make sure that system path is set so that make and arm-none-eabi-gcc are found "globally" in the system. I.e. when you enter in command `make` or `arm-none-eabi-gcc` in a command prompt, you don't get any kind of "command not found" message.
 
-This tool converts the generated binary file into .gdf file that may be loaded to Argon drive with Granity software.
-
-The soucre code of this program is included in this repository at utils/makefirmware. Compile it with GCC by running command `make` on the same folder (GCC that compiles C code into target system must be installed to the system).
+2) If you're compiling firmware on Linux, you may need to build makefirmware utily before firmware compilation. You can do it by entering in subdirectory utils/makefirmware and running `make` command (assuming that native gcc toolchain in addition to ARM toolchain is installed). You can check installation of gcc by entering command `gcc` alone on command prompt and verify the response like you did in the step 1.
 
 Compiling firmware
 ------------------
@@ -42,18 +37,14 @@ Compiling firmware
 - Run make by entering command: `make` (Compiler outputs lots of stuff)
 - When comipation is succeed, something like following text should become as last output lines:
 
-		text    data     bss     dec     hex filename
-		38480    1340    2380   42200    a4d8 argon_bootload_rom.elf
+		Create file 'argon_bootload_rom.gdf'
+		Input size=39684 bytes, output=39684 bytes
+		arm-none-eabi-size argon_bootload_rom.elf
+   		text    data     bss     dec     hex filename
+  		37516    2164    2468   42148    a4a4 argon_bootload_rom.elf
 		text+data = FLASH usage, text = code, data = init vars, bss = RAM usage (incl stack), dec & hex = total
 
-If so, then just generated argon_bootload_rom.bin is the binary file going to Argon STM32 MCU. Before it can be loaded into drive, it needs to be converted as .gdf file so Granity can use it.
-
-Convert .bin to .gdf with command: `makefirmware argon.gdf agron_bootload_rom.bin`. Makefirmware is available under utils/makefirmware folder.
-
-A sucecssfull run of makefirmware will output something like:
-
-		Create file 'argon.gdf'
-		Input size=39824 bytes, output=39824 bytes
+If so, then just generated argon_bootload_rom.gdf is the binary file going to Argon STM32 MCU. 
 
 Installing firmware
 ===================
