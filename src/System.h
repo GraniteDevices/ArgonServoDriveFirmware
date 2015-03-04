@@ -39,8 +39,11 @@
  *      -production test voltage limits updated accordingly
  *      -sending clear faults cmd now clears also fault location 2 register
  *      -initial resolver support ready
- * 1010(WIP) -implement second PWM setpoint input, uses analog input pins, see digitalcounterinput.cpp for usage
+ * 1010 -fix pulse&dir problem with noisy direction signal causing errorenous direction states
+ * 1011(WIP, merged development & master branch):
+ *      -implement second PWM setpoint input, uses analog input pins, see digitalcounterinput.cpp for usage
  * 		-change dscpowertask to use TIM8 instead of TIM1 (TODO: verify by measuring)
+ *      -makefile now calls mkfirmware utily to generate .gdf file
  */
 
 /*

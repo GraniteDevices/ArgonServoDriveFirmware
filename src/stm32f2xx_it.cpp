@@ -206,13 +206,14 @@ void EXTI1_IRQHandler( void )
 	//NVIC_InitTypeDef NVIC_InitStructure;
 
 	if (EXTI_GetITStatus( PULSETRAIN_DIR_EXTI_LINE ) == SET)
-	{
-
+	{	     
+                /* Clear PULSETRAIN_DIR_EXTI_LINE pending bit */ 
+	        EXTI_ClearITPendingBit( PULSETRAIN_DIR_EXTI_LINE );
+	        //clear flag first so if transition happens after this,
+	        //we'll get new int
+	   
 		//set counting direction according to DIR (HSIN2) pin state
 		sys.digitalCounterInput.setCountingDirection( sys.physIO.getDirectionPinState() );
-
-		/* Clear PULSETRAIN_DIR_EXTI_LINE pending bit */
-		EXTI_ClearITPendingBit( PULSETRAIN_DIR_EXTI_LINE );
 	}
 }
 
