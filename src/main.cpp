@@ -289,6 +289,85 @@ void vApplicationStackOverflowHook( xTaskHandle *pxTask,
 	}
 }
 
+/*
+A task to generate simulated encoder output from resolver etc feedback devices, pulses are output to 6 pin header inside drive.
+The nature of pulses is discontinous bursts at every 400 microsecs.
+*/
+void EncoderOutputTask( void *pvParameters )
+{
+	s32 edgesToGo=0;
+	u32 outPhase=0;
+	u32 edgesGenerated;
+	
+	u16 lastCount=0, currentCount=0;
+	
+	for( ;; )
+	{
+		vTaskDelay( 1 );
+		edgesGenerated=0;
+		
+		currentCount=sys.getPositionFeedbackValue()/2;//divide output scale by 2 for reduced resolution
+		//currentCount=sys.getPositionFeedbackValue()*100;
+		edgesToGo+=s16(currentCount-lastCount);
+		lastCount=currentCount;
+		
+		while(edgesToGo!=0)
+		{
+			edgesGenerated++;
+			//if too many pulses generated, break while loop to avoid blocking lower prio tasks
+			if(edgesGenerated>240)
+				break;
+		
+			if(edgesToGo>0)
+			{
+				edgesToGo--;
+				outPhase=(outPhase-1)&3;
+			}
+			if(edgesToGo<0)
+			{
+				edgesToGo++;
+				outPhase=(outPhase+1)&3;
+			}
+			
+			switch(outPhase)//use direct GPIO write funcs for faster operation
+			{
+			case 0:
+				GPIO_ResetBits(GPIOB,GPIO_Pin_10);
+				GPIO_ResetBits(GPIOB,GPIO_Pin_11);
+				//sys.physIO.doutDebug1.setState(0);
+				//sys.physIO.doutDebug2.setState(0);
+				break;
+			case 1:
+				GPIO_SetBits(GPIOB,GPIO_Pin_10);
+				GPIO_ResetBits(GPIOB,GPIO_Pin_11);
+				//sys.physIO.doutDebug1.setState(1);
+				//sys.physIO.doutDebug2.setState(0);
+				break;
+			case 2:
+				GPIO_SetBits(GPIOB,GPIO_Pin_10);
+				GPIO_SetBits(GPIOB,GPIO_Pin_11);
+				//sys.physIO.doutDebug1.setState(1);
+				//sys.physIO.doutDebug2.setState(1);
+				break;
+			case 3:
+				GPIO_ResetBits(GPIOB,GPIO_Pin_10);
+				GPIO_SetBits(GPIOB,GPIO_Pin_11);
+				//sys.physIO.doutDebug1.setState(0);
+				//sys.physIO.doutDebug2.setState(1);
+				break;
+			default:
+				break;
+			}
+		
+			//delay, limit count rate to 2MHz = one pulse high/low for 1us min
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );//4 lines equal 1.35us high/low states
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );//3 lines 1.125us
+//			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+		}
+	}
+}
+
 int main( void )
 {
 	/*
@@ -325,6 +404,8 @@ int main( void )
 			&SimpleMotionBufferedTaskHandle );
 	xTaskCreate( SlowTask, (const signed char*)"SlowTask", 128, NULL, 1,
 			&SlowTaskHandle );//in the wrost case this task may not get execution time as SM task could eat all remaining power at higher priority
+	xTaskCreate( EncoderOutputTask, (const signed char*)"EncoderOut", 128, NULL, 5,
+			&EncoderOutTaskHandle );
 
 
 //	sys.setSignal(System::RunProductionTest);

@@ -41,6 +41,9 @@
  *      -initial resolver support ready
  * 1010(WIP) -implement second PWM setpoint input, uses analog input pins, see digitalcounterinput.cpp for usage
  * 		-change dscpowertask to use TIM8 instead of TIM1 (TODO: verify by measuring)
+ *
+ * Test releases:
+ * 1810 based on 1010 - add encoder simulation output
  */
 
 /*
@@ -48,7 +51,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1010
+#define FW_VERSION 1810
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1000
 
 #define COMMAND_QUEUE1_SIZE 256
