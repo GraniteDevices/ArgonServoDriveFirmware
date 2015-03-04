@@ -306,9 +306,9 @@ void EncoderOutputTask( void *pvParameters )
 		vTaskDelay( 1 );
 		edgesGenerated=0;
 		
-		currentCount=sys.getPositionFeedbackValue()/2;//divide output scale by 2 for reduced resolution
-		//currentCount=sys.getPositionFeedbackValue()*100;
-		edgesToGo+=s16(currentCount-lastCount);
+		//divide output scale by 2 for reduced resolution
+		currentCount=sys.getPositionFeedbackValue()&0xfffe;//set last bit 0
+		edgesToGo+=s16(currentCount-lastCount)/2;
 		lastCount=currentCount;
 		
 		while(edgesToGo!=0)

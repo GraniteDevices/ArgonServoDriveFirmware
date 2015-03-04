@@ -38,6 +38,16 @@ AS   = $(TRGT)gcc -x assembler-with-cpp
 BIN  = $(CP) -O srec 
 MCU  = cortex-m3
 
+ifeq ($(OS),Windows_NT)
+	RM  = rm
+	CAT  = cat
+	MAKEFIRMWARE = utils\\makefirmware\\makefirmware.exe
+else
+	RM  = rm
+	CAT  = cat
+	MAKEFIRMWARE = utils/makefirmware/makefirmware
+endif
+
 
 # List all default C defines here, like -D_DEBUG=1
 ifeq ($(OPTIMIZATIONS),0)
@@ -248,6 +258,7 @@ CPPFLAGS += -MD -MP -MF .dep/$(@F).d
 
 all: $(OBJS) $(FULL_PRJ).elf $(FULL_PRJ).hex
 	arm-none-eabi-objcopy -O binary  $(FULL_PRJ).elf $(FULL_PRJ).bin
+	$(MAKEFIRMWARE)  $(FULL_PRJ).gdf $(FULL_PRJ).bin
 	$(SIZE) $(FULL_PRJ).elf
 	@echo text+data = FLASH usage, text = code, data = init vars, bss = RAM usage \(incl stack\), dec \& hex = total
 
