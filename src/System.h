@@ -286,9 +286,12 @@ public:
 	u32 getStatusBitsReg() const;
 	u32 getFirstFaultBitsReg() const;
 
+	//these should be called only by MCcomm task once per 400us cycle, use getLastPositionFeedbackValue() from elsewhere
 	s16 getVelocityFeedbackValue();
 	u16 getPositionFeedbackValue();
 
+	u16 getLastPositionFeedbackValue(){ return lastPositionFBValue; }
+	
 
 	//this method has very high priority and is called from isr at 40kHz
 	void highFrequencyISRTask();
@@ -399,6 +402,8 @@ private:
 
     int brakePoweronReleaseDelayMs;
     int brakeEngageDelayMs;
+	
+	u16 lastPositionFBValue;
 };
 
 #endif /* SYSTEM_H_ */
