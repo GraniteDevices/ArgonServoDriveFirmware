@@ -71,19 +71,49 @@ void SystemInitTask( void *pvParameters )
 
 void sendPhysInputsToGC()
 {
-	//send physical input bits to GC side
-	u32 send = 0;
-	if (sys.physIO.dinGPI1_HomeSwitch.inputState() == true)
-		send |= SMP_CB2_HOMESW_ON;
-	if (sys.physIO.dinGPI2_EnablePosFeed.inputState() == true)
-		send |= SMP_CB2_ENA_POS_FEED;
-	if (sys.physIO.dinGPI3_EnableNegFeed.inputState() == true)
-		send |= SMP_CB2_ENA_NEG_FEED;
-	if (sys.physIO.dinGPI4_ClearFaults.inputState() == true)
-		send |= SMP_CB2_CLEARFAULTS;
-	if (sys.physIO.dinGPI5_Enable.inputState() == true)
-		send |= SMP_CB2_ENABLE;
-	sys.setParameter( SMP_CONTROL_BITS2, send );//send command to GC
+	bool useHomingInput=true;/*this mode combines limit switches to one input GPI2 and GPI3 is used to signal homing start*/
+	if(useHomingInput==false)
+	{
+		//send physical input bits to GC side
+		u32 send = 0;
+		if (sys.physIO.dinGPI1_HomeSwitch.inputState() == true)
+			send |= SMP_CB2_HOMESW_ON;
+		if (sys.physIO.dinGPI2_EnablePosFeed.inputState() == true)
+			send |= SMP_CB2_ENA_POS_FEED;
+		if (sys.physIO.dinGPI3_EnableNegFeed.inputState() == true)
+			send |= SMP_CB2_ENA_NEG_FEED;
+		if (sys.physIO.dinGPI4_ClearFaults.inputState() == true)
+			send |= SMP_CB2_CLEARFAULTS;
+		if (sys.physIO.dinGPI5_Enable.inputState() == true)
+			send |= SMP_CB2_ENABLE;
+		sys.setParameter( SMP_CONTROL_BITS2, send );//send command to GC
+	}
+	else
+	{
+		static bool prevHomingStartState=false;
+		bool homingStartState=false;
+		
+		//send physical input bits to GC side
+		u32 send = 0;
+		if (sys.physIO.dinGPI1_HomeSwitch.inputState() == true)
+			send |= SMP_CB2_HOMESW_ON;
+		if (sys.physIO.dinGPI2_EnablePosFeed.inputState() == true )//enable pos & neg feeds if GPI2 is true
+			send |= SMP_CB2_ENA_POS_FEED| SMP_CB2_ENA_NEG_FEED;
+
+			//rest as usual	
+		if (sys.physIO.dinGPI4_ClearFaults.inputState() == true)
+			send |= SMP_CB2_CLEARFAULTS;
+		if (sys.physIO.dinGPI5_Enable.inputState() == true)
+			send |= SMP_CB2_ENABLE;
+		sys.setParameter( SMP_CONTROL_BITS2, send );//send command to GC
+
+		//homing start by GPI3 rising edge
+		homingStartState=sys.physIO.dinGPI3_EnableNegFeed.inputState();
+		if(homingStartState==true&&prevHomingStartState==false)
+			sys.setParameter( SMP_HOMING_CONTROL, 1 );//send start homing command to GC
+		prevHomingStartState=homingStartState;
+		
+	}
 }
 
 void updatePhysOutputs()
