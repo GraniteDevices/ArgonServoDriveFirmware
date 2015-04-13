@@ -38,8 +38,16 @@ public:
 	void addSamples(float x, float y, bool upcycle);
 
 	void getSamples(float &x, float &y);
+	
+	/* counter value when simulated index pulse was seen last time */
+	u16 getCounterAtIndex();
+	/* return true if simulated index value has been updated and can be read with getCounterAtIndex()
+	* note: calling getCounterAtIndex() will reset this status */
+	bool hasIndexUpdated();
 private:
 
+	bool zeroCrossed;//true if zero has been crossed (index simulation point)
+	
 	float xacc,yacc;
 	int samples;
 
@@ -48,7 +56,7 @@ private:
 	System *parentSys;
 	const u16 countsPerRev;
 	u16 lastAngle, currAngle;
-	s32 outputCount, unrolledCount, lastOutputCount;
+	s32 outputCount, unrolledCount, lastOutputCount, outputCountAtZeroCross;
 
 };
 

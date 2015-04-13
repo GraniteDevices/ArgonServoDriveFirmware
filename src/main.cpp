@@ -136,15 +136,29 @@ void SystemPeriodicTask( void *pvParameters )
 		xSemaphoreTake( SystemPeriodicTaskSemaphore, portMAX_DELAY );
 
 		//send index pulse position to GC if index encountered from encoder
-		if (sys.encoder.hasIndexUpdated())
+		if(sys.getCurrentPositionFeedbackDevice()==System::Encoder)
 		{
-			if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
-					sys.encoder.getCounterAtIndex() ) == false)
+			if (sys.encoder.hasIndexUpdated())
 			{
-				sys.setFault( FLT_GC_COMM, 100201 );//if setting failed
+				if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
+						sys.encoder.getCounterAtIndex() ) == false)
+				{
+					sys.setFault( FLT_GC_COMM, 100201 );//if setting failed
+				}
 			}
 		}
-
+		else if(sys.getCurrentPositionFeedbackDevice()==System::Resolver)
+		{
+			if (sys.resolver.hasIndexUpdated())
+			{
+				if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
+						sys.resolver.getCounterAtIndex() ) == false)
+				{
+					sys.setFault( FLT_GC_COMM, 100202 );//if setting failed
+				}
+			}
+		}
+		
 		//when any GPI digital input changes state, send input state bits to GC
 		if (sys.physIO.getGPInputs() != prevDigitalInputs)
 		{

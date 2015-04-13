@@ -362,6 +362,12 @@ public:
 	{
 		return brakePoweronReleaseDelayMs;
 	}
+	
+
+	FeedbackDevice getCurrentPositionFeedbackDevice()
+	{
+		return positionFeedbackDevice;
+	}
 
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc
@@ -378,8 +384,9 @@ private:
 
 	s32 debugParams[3];
 
-	ControlMode presentControlMode;
 	FeedbackDevice positionFeedbackDevice,velocityFeedbackDevice;
+
+	ControlMode presentControlMode;
 
 	//called from SMCommandInterpreter when SMV2 command tells to change control mode
 	void setControlMode(ControlMode mode)

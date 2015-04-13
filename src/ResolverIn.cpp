@@ -46,6 +46,8 @@ ResolverIn::ResolverIn( System *parent ) :
 {
 	xacc = yacc = 0;
 	samples = 0;
+	zeroCrossed=false;
+	outputCountAtZeroCross=0;
 }
 
 void ResolverIn::enableResolverRead( bool on )
@@ -161,6 +163,15 @@ u16 ResolverIn::getAngle()
 
 	currAngle = u16( s32( 65536.0 * atan2f( x, y ) * (0.5 / M_PI) ) );
 
+	//detect travel over zero absolute angle for encoder simulation
+	if((lastAngle>60000&&currAngle<10000) || (lastAngle<10000&&currAngle>60000))
+	{
+		zeroCrossed=true;
+		/*calculate where zero crossing happens. 
+		- s16(lastAngle) comes from unrolledCount += s16( currAngle - lastAngle ); when currAngle=0*/
+		outputCountAtZeroCross  = (unrolledCount- s16(lastAngle)) / (65536 / countsPerRev);
+	}
+	
 	lastOutputCount = outputCount;
 	unrolledCount += s16( currAngle - lastAngle );
 	outputCount = unrolledCount / (65536 / countsPerRev);
@@ -211,6 +222,20 @@ float ResolverIn::customAtan2( float y, float x )
 	return 0; //error
 }
 
+/* counter value when simulated index pulse was seen last time */
+u16 ResolverIn::getCounterAtIndex()
+{
+	return outputCountAtZeroCross;
+}
+
+/* return true if simulated index value has been updated and can be read with getCounterAtIndex()
+ * note: calling getCounterAtIndex() will reset this status */
+bool ResolverIn::hasIndexUpdated()
+{
+	bool temp=zeroCrossed;
+	zeroCrossed=false;
+	return temp;
+}
 
 #if ST_APPNOTE_CODE
 /** @brief Sort the N ADC samples
