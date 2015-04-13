@@ -306,16 +306,16 @@ void EncoderOutputTask( void *pvParameters )
 		vTaskDelay( 1 );
 		edgesGenerated=0;
 		
-		//divide output scale by 2 for reduced resolution
-		currentCount=sys.getLastPositionFeedbackValue()&0xfffe;//set last bit 0
-		edgesToGo+=s16(currentCount-lastCount)/2;
+		//divide output scale by 4 for reduced resolution
+		currentCount=sys.getLastPositionFeedbackValue()&0xfffc;//set last bits 00
+		edgesToGo+=s16(currentCount-lastCount)/4;
 		lastCount=currentCount;
 		
 		while(edgesToGo!=0)
 		{
 			edgesGenerated++;
 			//if too many pulses generated, break while loop to avoid blocking lower prio tasks
-			if(edgesGenerated>240)
+			if(edgesGenerated>(240/2))
 				break;
 		
 			if(edgesToGo>0)
@@ -364,6 +364,21 @@ void EncoderOutputTask( void *pvParameters )
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );//3 lines 1.125us
 //			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			
+			//add delay 10 nops per line = 1/12 us per line:
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			/*asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );*/
+
 		}
 	}
 }
