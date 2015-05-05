@@ -257,6 +257,7 @@
 	//bitfield bits:
 	#define FLAG_DISABLED_AT_STARTUP BV(0)
 	#define FLAG_NO_DCBUS_FAULT BV(1)
+    #define FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT BV(2) /*if 1, then use direction input signal for analog and PWM setpoint mode*/
 	#define FLAG_INVERT_ENCODER BV(3)
 	#define FLAG_INVERT_MOTOR_DIRECTION BV(4) /*invert positive direction*/
 	#define FLAG_DISABLE_DEADTIMECORR_LO_SPEED BV(5)

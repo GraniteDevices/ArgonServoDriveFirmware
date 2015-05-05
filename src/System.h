@@ -355,6 +355,12 @@ public:
 		return brakePoweronReleaseDelayMs;
 	}
 
+	//return true if flag bit is on (drive config param flags). See FLAG_DISABLED_AT_STARTUP etc defines
+	bool isFlagBit(u32 bit)
+	{
+		return DriveFlagBits&bit;
+	}
+
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc
 	u32 FaultBitsReg;
@@ -367,6 +373,8 @@ private:
 	//code elsewhere polls bits in this register and act if 1.
 	//see enum Signal
 	u32 SignalReg;
+	u32 DriveFlagBits;
+	s32 setpointOffset;
 
 	s32 debugParams[3];
 

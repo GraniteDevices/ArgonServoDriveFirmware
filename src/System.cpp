@@ -45,6 +45,8 @@ System::System() :
 	GCFaultBits=0;
 	GCFirstFault=0;
 	SignalReg=0;
+	DriveFlagBits=0;
+	setpointOffset=0;
 	//deviceResetRequested=false;
 
 	//encoder is the default setting, changed later if configured so
@@ -306,13 +308,44 @@ s32 System::getInputReferenceValue()
 		return digitalCounterInput.getCounter();
 		break;
 	case PWM:
-		return digitalCounterInput.getCounter();
+		if(isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//PWM+DIR mode
+		{
+			if(physIO.dinHSIN1.inputState()) //non inverted if 0
+				return (digitalCounterInput.getCounter(0,false))+setpointOffset;
+			else//inverted
+				return (-(digitalCounterInput.getCounter(0,false)))+setpointOffset;
+		}
+		else//PWM only input
+		{
+			s32 setpoint;
+			setpoint=digitalCounterInput.getCounter(0,true);
+			if(!digitalCounterInput.isInvalidPWMSignal())//good only for this mode, dir mode no pwm is valid too..
+				setpoint+=setpointOffset;
+			return setpoint;
+
+		}
 		break;
 	case Analog:
-		if(physIO.getAnalogInput2()<4915) //non inverted analog1 if anain2<3.0V
-			return physIO.getAnalogInput1();
-		else//inverted analog if anain2=3-24V
-			return (-physIO.getAnalogInput1());
+		if( isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//DIR input active
+		{
+			s32 setpoint;
+			if(physIO.getAnalogInput2()>4915)//inverted analog1 if anain2>3.0V
+			{
+				setpoint = (-physIO.getAnalogInput1())+setpointOffset;//inverted
+				if(setpoint>0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
+			//non-inverted analog if anain2 is below 3V
+			else
+			{
+				setpoint = (physIO.getAnalogInput1())+setpointOffset;//non inverted
+				if(setpoint<0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
+			return setpoint;
+		}
+		else
+		{
+			return physIO.getAnalogInput1()+setpointOffset;
+		}
 		break;
 	case Reserved1:
 		return 0;
@@ -681,6 +714,9 @@ bool System::readInitStateFromGC()
 		break;
 	}
 
+	DriveFlagBits=sys.getParameter(SMP_DRIVE_FLAGS, fail );
+
+	setpointOffset==sys.getParameter(SMP_ABS_IN_OFFSET, fail );
 
 	//if any GC command failed
 	if (fail)
