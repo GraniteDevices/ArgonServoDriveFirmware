@@ -361,6 +361,21 @@ public:
 		return DriveFlagBits&bit;
 	}
 
+	void setSerialSetpoint(s32 setp)
+	{
+		serialSetpoint=setp;
+		resetPhyiscalSetpoint();
+	}
+	void incrementSerialSetpoint(s32 setp)
+	{
+		serialSetpoint+=setp;
+	}
+
+	void resetPhyiscalSetpoint()
+	{
+		digitalCounterInput.setCounter(0);
+	}
+
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc
 	u32 FaultBitsReg;
@@ -377,6 +392,9 @@ private:
 	s32 setpointOffset;
 
 	s32 debugParams[3];
+
+	//last setpoint value from SM host
+	s32 serialSetpoint;
 
 	ControlMode presentControlMode;
 	FeedbackDevice positionFeedbackDevice,velocityFeedbackDevice;

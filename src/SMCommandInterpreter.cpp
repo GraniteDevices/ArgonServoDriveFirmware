@@ -19,6 +19,7 @@ SMCommandInterpreter::SMCommandInterpreter( System *parent)
 	returnParamLength = SMPRET_CMD_STATUS;
 	lastReturnStatus = SMP_CMD_STATUS_ACK;
 	parentSystem=parent;
+	setIgnoreSetpointCommands(false);
 }
 
 SMCommandInterpreter::~SMCommandInterpreter()
@@ -180,6 +181,14 @@ bool SMCommandInterpreter::executeHostSideGlobalSetParamCommand(
 			break;
 		case SMP_FAULT_BEHAVIOR:
 			parentSystem->SMComm.setSMBusFaultBehavior(cmd.param);
+			break;
+		case SMP_ABSOLUTE_POS_TARGET:
+			if(ignoreSetpointCommands==false)
+				parentSystem->setSerialSetpoint(cmd.param);
+			break;
+		case SMP_INCREMENTAL_POS_TARGET:
+			if(ignoreSetpointCommands==false)
+				parentSystem->incrementSerialSetpoint(cmd.param);
 			break;
 
 		default:

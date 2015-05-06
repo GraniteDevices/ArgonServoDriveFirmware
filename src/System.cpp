@@ -47,6 +47,7 @@ System::System() :
 	SignalReg=0;
 	DriveFlagBits=0;
 	setpointOffset=0;
+	serialSetpoint=0;
 	//deviceResetRequested=false;
 
 	//encoder is the default setting, changed later if configured so
@@ -73,6 +74,8 @@ System::System() :
     {
     	setFault( FLT_FIRMWARE|FLT_ALLOC,FAULTLOCATION_BASE+01);
     }
+
+    INPUT_REFERENCE_QUEUE.setIgnoreSetpointCommands(true);
 }
 
 System::~System()
@@ -296,39 +299,37 @@ u32 System::getStatusBitsReg() const
 
 s32 System::getInputReferenceValue()
 {
+	s32 setpoint=0;
+
 	switch (inputReferenceMode)
 	{
 	case Serialonly:
-		return 0;
+		setpoint=0;
 		break;
 	case Pulsetrain:
-		return digitalCounterInput.getCounter();
+		setpoint=digitalCounterInput.getCounter();
 		break;
 	case Quadrature:
-		return digitalCounterInput.getCounter();
+		setpoint=digitalCounterInput.getCounter();
 		break;
 	case PWM:
 		if(isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//PWM+DIR mode
 		{
 			if(physIO.dinHSIN1.inputState()) //non inverted if 0
-				return (digitalCounterInput.getCounter(0,false))+setpointOffset;
+				setpoint=(digitalCounterInput.getCounter(0,false))+setpointOffset;
 			else//inverted
-				return (-(digitalCounterInput.getCounter(0,false)))+setpointOffset;
+				setpoint=(-(digitalCounterInput.getCounter(0,false)))+setpointOffset;
 		}
 		else//PWM only input
 		{
-			s32 setpoint;
 			setpoint=digitalCounterInput.getCounter(0,true);
 			if(!digitalCounterInput.isInvalidPWMSignal())//good only for this mode, dir mode no pwm is valid too..
 				setpoint+=setpointOffset;
-			return setpoint;
-
 		}
 		break;
 	case Analog:
 		if( isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//DIR input active
 		{
-			s32 setpoint;
 			if(physIO.getAnalogInput2()>4915)//inverted analog1 if anain2>3.0V
 			{
 				setpoint = (-physIO.getAnalogInput1())+setpointOffset;//inverted
@@ -340,25 +341,24 @@ s32 System::getInputReferenceValue()
 				setpoint = (physIO.getAnalogInput1())+setpointOffset;//non inverted
 				if(setpoint<0) setpoint=0;//dont allow wrong polarity in dir input mode
 			}
-			return setpoint;
 		}
 		else
 		{
-			return physIO.getAnalogInput1()+setpointOffset;
+			setpoint=physIO.getAnalogInput1()+setpointOffset;
 		}
 		break;
 	case Reserved1:
-		return 0;
+		setpoint=0;
 		break;
 	case Reserved2:
-		return 0;
+		setpoint=0;
 		break;
 	default:
 		return 0;
 		break;
 	}
 
-	return 0;
+	return setpoint+serialSetpoint;
 }
 
 s16 System::getVelocityFeedbackValue()
