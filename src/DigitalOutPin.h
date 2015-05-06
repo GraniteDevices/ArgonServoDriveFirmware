@@ -16,7 +16,7 @@
 class DigitalOutPin
 {
 public:
-	enum OutputPin { CHD, CHDDir, CHE, CHEDir, GPO1, GPO2, GPO3, GPO4, LED1, LED2, Debug1, Debug2, MechBrakeRelease };
+	enum OutputPin { CHD, CHDDir, CHE, CHEDir, GPO1, GPO2, GPO3, GPO4, LED1, LED2, Debug1, Debug2, Debug3, Debug4, MechBrakeRelease };
 
 	DigitalOutPin( OutputPin outpin );
 	virtual ~DigitalOutPin();
@@ -25,6 +25,15 @@ public:
 	void setState(bool on);
 	//set on non-zero and clear on zero
 	void setState( int on );
+
+	//fast access to GPIO writing. note: this does not handle invertion
+	void setStateDirect(bool on)
+	{
+		if(on)
+			port->BSRRL = pin;
+		else
+			port->BSRRH = pin;
+	}
 
 	bool getState();
 private:
