@@ -316,9 +316,15 @@ s32 System::getInputReferenceValue()
 		if(isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//PWM+DIR mode
 		{
 			if(physIO.dinHSIN1.inputState()) //non inverted if 0
+			{
 				setpoint=(digitalCounterInput.getCounter(0,false))+setpointOffset;
+				if(setpoint<0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
 			else//inverted
-				setpoint=(-(digitalCounterInput.getCounter(0,false)))+setpointOffset;
+			{
+				setpoint=-(digitalCounterInput.getCounter(0,false)+setpointOffset);
+				if(setpoint>0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
 		}
 		else//PWM only input
 		{
@@ -332,13 +338,13 @@ s32 System::getInputReferenceValue()
 		{
 			if(physIO.getAnalogInput2()>4915)//inverted analog1 if anain2>3.0V
 			{
-				setpoint = (-physIO.getAnalogInput1())+setpointOffset;//inverted
+				setpoint = -(physIO.getAnalogInput1()+setpointOffset);//inverted
 				if(setpoint>0) setpoint=0;//dont allow wrong polarity in dir input mode
 			}
 			//non-inverted analog if anain2 is below 3V
 			else
 			{
-				setpoint = (physIO.getAnalogInput1())+setpointOffset;//non inverted
+				setpoint = physIO.getAnalogInput1()+setpointOffset;//non inverted
 				if(setpoint<0) setpoint=0;//dont allow wrong polarity in dir input mode
 			}
 		}
