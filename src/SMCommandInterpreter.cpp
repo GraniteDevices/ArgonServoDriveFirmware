@@ -172,6 +172,12 @@ bool SMCommandInterpreter::executeHostSideGlobalSetParamCommand(
 		case SMP_MECH_BRAKE_ENGAGE_DELAY:
 			parentSystem->setBrakeEngageDelayMs(cmd.param);
 			break;
+		case SMP_DRIVE_FLAGS:
+			parentSystem->DriveFlagBits=cmd.param;
+			break;
+		case SMP_ABS_IN_OFFSET:
+			parentSystem->setpointOffset=cmd.param;
+			break;
 		default:
 			if (setParamAddr < 200 )
 				//attempt to modify read only or unsupported param causes error status
