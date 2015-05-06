@@ -98,6 +98,21 @@
 #define SMP_RETURN_PARAM_LEN 10
 #define SMP_TIMEOUT 12
 #define SMP_CUMULATIVE_STATUS 13 //error bits are set here if any, (SMP_CMD_STATUS_... bits). clear by writing 0
+#define SMP_ADDRESS_OFFSET 14 /*used to set or offset device address along physical method, i.e. DIP SW + offset to allow greater range of addresses than switch allows. */
+/* SMP_FAULT_BEHAVIOR defines maximum amount of time between to valid received SM packets to device and other SM
+ * fault behavior that affect drive operation.
+ *
+ * If comm is broken longer than watchdog time, drive will go fault stop state.
+ * Can be used for additional safety stop when drives are controlled only onver SM bus.
+ *
+ * Parameter is bit field:
+ * bit 0 (LSB): enable device fault stop on any SM comm error (CRC, invalid value etc)
+ * bits 1-7: reserved, always 0
+ * bits 8-17: watchdog timeout value. nonzero enables watchdog. scale: 1 count=10ms, so allows 0.01-10.230 s delay.
+ * bits 18-32: reserved, always 0
+ */
+#define SMP_FAULT_BEHAVIOR 15
+	#define FAULT_BEHAVIOR_ENABLE_FAULTSTOP 1
 
 //bit mask
 #define SM_BUFCMD_STAT_IDLE 1

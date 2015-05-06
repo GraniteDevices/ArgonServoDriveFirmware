@@ -178,6 +178,10 @@ bool SMCommandInterpreter::executeHostSideGlobalSetParamCommand(
 		case SMP_ABS_IN_OFFSET:
 			parentSystem->setpointOffset=cmd.param;
 			break;
+		case SMP_FAULT_BEHAVIOR:
+			parentSystem->SMComm.setSMBusFaultBehavior(cmd.param);
+			break;
+
 		default:
 			if (setParamAddr < 200 )
 				//attempt to modify read only or unsupported param causes error status
@@ -239,6 +243,10 @@ bool SMCommandInterpreter::executeHostSideGlobalGetParamCommand(
 		case SMP_BUFFER_FREE_BYTES:
 			overrideGCreturnPacket = true;
 			retValue = parentSystem->SMComm.getSMBusBufferFreeBytes(returnParamAttribute);
+			break;
+		case SMP_FAULT_BEHAVIOR:
+			overrideGCreturnPacket = true;
+			retValue = parentSystem->SMComm.getSMBusFaultBehavior(returnParamAttribute);
 			break;
 
 		case SMP_DIGITAL_IN_VALUES_1:
