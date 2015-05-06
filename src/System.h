@@ -291,6 +291,14 @@ public:
 	u16 getPositionFeedbackValue();
 
 	u16 getLastPositionFeedbackValue(){ return lastPositionFBValue; }
+	//for emulated encoder output. outputs true one time after feedback device index has been passed
+	//flaw: this method is inaccurate if speed is above 2500 counts/s
+	bool simulatedIndexPulseOutNow()
+	{
+		bool ret=indexHasOccurred;
+		indexHasOccurred=false;
+		return ret;
+	}
 	
 
 	//this method has very high priority and is called from isr at 40kHz
@@ -368,6 +376,8 @@ public:
 	{
 		return positionFeedbackDevice;
 	}
+
+	bool indexHasOccurred;
 
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc

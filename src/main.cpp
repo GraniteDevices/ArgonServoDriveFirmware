@@ -140,6 +140,7 @@ void SystemPeriodicTask( void *pvParameters )
 		{
 			if (sys.encoder.hasIndexUpdated())
 			{
+				sys.indexHasOccurred=true;
 				if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
 						sys.encoder.getCounterAtIndex() ) == false)
 				{
@@ -151,6 +152,7 @@ void SystemPeriodicTask( void *pvParameters )
 		{
 			if (sys.resolver.hasIndexUpdated())
 			{
+				sys.indexHasOccurred=true;
 				if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
 						sys.resolver.getCounterAtIndex() ) == false)
 				{
@@ -314,6 +316,7 @@ void EncoderOutputTask( void *pvParameters )
 	u32 edgesGenerated;
 	
 	u16 lastCount=0, currentCount=0;
+	int indexpulseUp=0;
 	
 	for( ;; )
 	{
@@ -325,12 +328,26 @@ void EncoderOutputTask( void *pvParameters )
 		edgesToGo+=s16(currentCount-lastCount)/4;
 		lastCount=currentCount;
 		
-		while(edgesToGo!=0)
+		if(sys.simulatedIndexPulseOutNow())
+				indexpulseUp=2;//pulse lenght at least 2 cycles
+
+		while(edgesToGo!=0 || indexpulseUp )
 		{
 			edgesGenerated++;
-			//if too many pulses generated, break while loop to avoid blocking lower prio tasks
-			if(edgesGenerated>(240/2))
+			//if too many pulses generated, break while loop to avoid blocking lower priority tasks
+			if(edgesGenerated>110)
 				break;
+
+			//index pulse out
+			//note: this is accurate only at low speeds (below 2500 original counts/s, probably best below 1000 counts/S)
+			//could improve this by outputting pulse at middle of pulse generation at exact pulse position
+			if(indexpulseUp>0)
+			{
+				sys.physIO.doutDebug3.setStateDirect(1);
+				indexpulseUp--;
+			}
+			else
+				sys.physIO.doutDebug3.setStateDirect(0);
 		
 			if(edgesToGo>0)
 			{
@@ -346,52 +363,41 @@ void EncoderOutputTask( void *pvParameters )
 			switch(outPhase)//use direct GPIO write funcs for faster operation
 			{
 			case 0:
-				GPIO_ResetBits(GPIOB,GPIO_Pin_10);
-				GPIO_ResetBits(GPIOB,GPIO_Pin_11);
-				//sys.physIO.doutDebug1.setState(0);
-				//sys.physIO.doutDebug2.setState(0);
+				sys.physIO.doutDebug1.setStateDirect(0);
+				sys.physIO.doutDebug2.setStateDirect(0);
 				break;
 			case 1:
-				GPIO_SetBits(GPIOB,GPIO_Pin_10);
-				GPIO_ResetBits(GPIOB,GPIO_Pin_11);
-				//sys.physIO.doutDebug1.setState(1);
-				//sys.physIO.doutDebug2.setState(0);
+				sys.physIO.doutDebug1.setStateDirect(1);
+				sys.physIO.doutDebug2.setStateDirect(0);
 				break;
 			case 2:
-				GPIO_SetBits(GPIOB,GPIO_Pin_10);
-				GPIO_SetBits(GPIOB,GPIO_Pin_11);
-				//sys.physIO.doutDebug1.setState(1);
-				//sys.physIO.doutDebug2.setState(1);
+				sys.physIO.doutDebug1.setStateDirect(1);
+				sys.physIO.doutDebug2.setStateDirect(1);
 				break;
 			case 3:
-				GPIO_ResetBits(GPIOB,GPIO_Pin_10);
-				GPIO_SetBits(GPIOB,GPIO_Pin_11);
-				//sys.physIO.doutDebug1.setState(0);
-				//sys.physIO.doutDebug2.setState(1);
+				sys.physIO.doutDebug1.setStateDirect(0);
+				sys.physIO.doutDebug2.setStateDirect(1);
 				break;
 			default:
 				break;
 			}
 		
-			//delay, limit count rate to 2MHz = one pulse high/low for 1us min
-			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );//4 lines equal 1.35us high/low states
-			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );//3 lines 1.125us
-//			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
-			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
-			
+			//delay, limit count rate to 1MHz = one pulse period for 4us min (spec)
 			//add delay 10 nops per line = 1/12 us per line:
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			//4-5 lines gives max 400kHz frequency (measured)
+
+			//added some more
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
-			/*asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
 			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
-			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );*/
+			//10 lines total gives 4.2us+ periods
 
 		}
 	}
