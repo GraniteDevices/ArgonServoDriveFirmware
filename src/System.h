@@ -44,6 +44,10 @@
  *      -implement second PWM setpoint input, uses analog input pins, see digitalcounterinput.cpp for usage
  * 		-change dscpowertask to use TIM8 instead of TIM1 (TODO: verify by measuring)
  *      -makefile now calls mkfirmware utily to generate .gdf file
+ * 1090 -ported IONI features: new setpoint calculation (Ioni style simplified setpoint handling: drive setpoint is a sum of phyiscal setpoint (step/dir, pwm, analog etc) and the setpoint from SM host (instant and buffered commands). If SM host sets absolute setpoint, then phyiscal counter (incremental types onle) are reset to zero.)
+ * 		-support PWM+dir and Analog+dir setpoints with on/off option in Granity
+ * 		-Increase ADC sampling time (in hope that it reduces ADC channel crosstalk)
+ * 		-requires GraniteCore FW version 1090 or later
  */
 
 /*
@@ -51,8 +55,8 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1010
-#define FW_BACKWARDS_COMPATITBLE_VERSION 1000
+#define FW_VERSION 1090
+#define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
 #define COMMAND_QUEUE2_SIZE 256
