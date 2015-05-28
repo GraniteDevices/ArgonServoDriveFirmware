@@ -36,6 +36,7 @@ System::System() :
 				resolver(this)
 
 {
+	lastPositionFBValue=0;
 	FaultBitsReg = 0;
 	FirstFaultBitsReg = 0;
 	FirstFaultLocation = 0;
@@ -411,15 +412,16 @@ u16 System::getPositionFeedbackValue()
 	switch(velocityFeedbackDevice)
 	{
 	case Encoder:
-		return encoder.getCounter();
+		lastPositionFBValue=encoder.getCounter();
 		break;
 	case Resolver:
-		return resolver.getAngle();
+		lastPositionFBValue=resolver.getAngle();
 		break;
 	case None:
 	default:
-		return 0;
+		lastPositionFBValue=0;
 	}
+	return lastPositionFBValue;
 }
 
 

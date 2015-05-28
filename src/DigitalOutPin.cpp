@@ -93,14 +93,24 @@ DigitalOutPin::DigitalOutPin( OutputPin outpin )
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 		break;
 	case Debug1:
-		pin = GPIO_Pin_11;// extu uart pin 3
+		pin = GPIO_Pin_11;// EXT pin header pin 3 (UART RX)
 		port = GPIOB;
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 		break;
 	case Debug2:
-		pin = GPIO_Pin_10; //EXT uart pin 4
+		pin = GPIO_Pin_10; //EXT pin header pin 4 (UART TX)
 		port = GPIOB;
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+		break;
+	case Debug3:
+		pin = GPIO_Pin_13; //EXT pin header pin 5 (SWDIO)
+		port = GPIOA;
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+		break;
+	case Debug4:
+		pin = GPIO_Pin_14; //EXT pin header pin 6 (SWCLK)
+		port = GPIOA;
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 		break;
 
 	default:

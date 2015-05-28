@@ -137,15 +137,31 @@ void SystemPeriodicTask( void *pvParameters )
 		xSemaphoreTake( SystemPeriodicTaskSemaphore, portMAX_DELAY );
 
 		//send index pulse position to GC if index encountered from encoder
-		if (sys.encoder.hasIndexUpdated())
+		if(sys.getCurrentPositionFeedbackDevice()==System::Encoder)
 		{
-			if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
-					sys.encoder.getCounterAtIndex() ) == false)
+			if (sys.encoder.hasIndexUpdated())
 			{
-				sys.setFault( FLT_GC_COMM, 100201 );//if setting failed
+				sys.indexHasOccurred=true;
+				if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
+						sys.encoder.getCounterAtIndex() ) == false)
+				{
+					sys.setFault( FLT_GC_COMM, 100201 );//if setting failed
+				}
 			}
 		}
-
+		else if(sys.getCurrentPositionFeedbackDevice()==System::Resolver)
+		{
+			if (sys.resolver.hasIndexUpdated())
+			{
+				sys.indexHasOccurred=true;
+				if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
+						sys.resolver.getCounterAtIndex() ) == false)
+				{
+					sys.setFault( FLT_GC_COMM, 100202 );//if setting failed
+				}
+			}
+		}
+		
 		//when any GPI digital input changes state, send input state bits to GC
 		if (sys.physIO.getGPInputs() != prevDigitalInputs)
 		{
@@ -316,6 +332,104 @@ void vApplicationStackOverflowHook( xTaskHandle *pxTask,
 	}
 }
 
+/*
+A task to generate simulated encoder output from resolver etc feedback devices, pulses are output to 6 pin header inside drive.
+The nature of pulses is discontinous bursts at every 400 microsecs.
+*/
+void EncoderOutputTask( void *pvParameters )
+{
+	s32 edgesToGo=0;
+	u32 outPhase=0;
+	u32 edgesGenerated;
+	
+	u16 lastCount=0, currentCount=0;
+	int indexpulseUp=0;
+	
+	for( ;; )
+	{
+		vTaskDelay( 1 );
+		edgesGenerated=0;
+		
+		//divide output scale by 4 for reduced resolution
+		currentCount=sys.getLastPositionFeedbackValue()&0xfffc;//set last bits 00
+		edgesToGo+=s16(currentCount-lastCount)/4;
+		lastCount=currentCount;
+		
+		if(sys.simulatedIndexPulseOutNow())
+				indexpulseUp=2;//pulse lenght at least 2 cycles
+
+		while(edgesToGo!=0 || indexpulseUp )
+		{
+			edgesGenerated++;
+			//if too many pulses generated, break while loop to avoid blocking lower priority tasks
+			if(edgesGenerated>110)
+				break;
+
+			//index pulse out
+			//note: this is accurate only at low speeds (below 2500 original counts/s, probably best below 1000 counts/S)
+			//could improve this by outputting pulse at middle of pulse generation at exact pulse position
+			if(indexpulseUp>0)
+			{
+				sys.physIO.doutDebug3.setStateDirect(1);
+				indexpulseUp--;
+			}
+			else
+				sys.physIO.doutDebug3.setStateDirect(0);
+		
+			if(edgesToGo>0)
+			{
+				edgesToGo--;
+				outPhase=(outPhase-1)&3;
+			}
+			if(edgesToGo<0)
+			{
+				edgesToGo++;
+				outPhase=(outPhase+1)&3;
+			}
+			
+			switch(outPhase)//use direct GPIO write funcs for faster operation
+			{
+			case 0:
+				sys.physIO.doutDebug1.setStateDirect(0);
+				sys.physIO.doutDebug2.setStateDirect(0);
+				break;
+			case 1:
+				sys.physIO.doutDebug1.setStateDirect(1);
+				sys.physIO.doutDebug2.setStateDirect(0);
+				break;
+			case 2:
+				sys.physIO.doutDebug1.setStateDirect(1);
+				sys.physIO.doutDebug2.setStateDirect(1);
+				break;
+			case 3:
+				sys.physIO.doutDebug1.setStateDirect(0);
+				sys.physIO.doutDebug2.setStateDirect(1);
+				break;
+			default:
+				break;
+			}
+		
+			//delay, limit count rate to 1MHz = one pulse period for 4us min (spec)
+			//add delay 10 nops per line = 1/12 us per line:
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			//4-5 lines gives max 400kHz frequency (measured)
+
+			//added some more
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			asm volatile ("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n" );
+			//10 lines total gives 4.2us+ periods
+
+		}
+	}
+}
+
 int main( void )
 {
 	/*
@@ -352,6 +466,8 @@ int main( void )
 			&SimpleMotionBufferedTaskHandle );
 	xTaskCreate( SlowTask, (const signed char*)"SlowTask", 128, NULL, 1,
 			&SlowTaskHandle );//in the wrost case this task may not get execution time as SM task could eat all remaining power at higher priority
+	xTaskCreate( EncoderOutputTask, (const signed char*)"EncoderOut", 128, NULL, 5,
+			&EncoderOutTaskHandle );
 
 
 //	sys.setSignal(System::RunProductionTest);

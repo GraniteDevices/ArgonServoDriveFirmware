@@ -43,11 +43,12 @@
  * 1011(WIP, merged development & master branch):
  *      -implement second PWM setpoint input, uses analog input pins, see digitalcounterinput.cpp for usage
  * 		-change dscpowertask to use TIM8 instead of TIM1 (TODO: verify by measuring)
- *      -makefile now calls mkfirmware utily to generate .gdf file
  * 1090 -ported IONI features: new setpoint calculation (Ioni style simplified setpoint handling: drive setpoint is a sum of phyiscal setpoint (step/dir, pwm, analog etc) and the setpoint from SM host (instant and buffered commands). If SM host sets absolute setpoint, then phyiscal counter (incremental types onle) are reset to zero.)
  * 		-support PWM+dir and Analog+dir setpoints with on/off option in Granity
  * 		-Increase ADC sampling time (in hope that it reduces ADC channel crosstalk)
  * 		-requires GraniteCore FW version 1090 or later
+ * 		-reduce fault sensitivity of resolver input
+ * 		-added simulated encoder output feature
  */
 
 /*
@@ -285,9 +286,20 @@ public:
 	u32 getStatusBitsReg() const;
 	u32 getFirstFaultBitsReg() const;
 
+	//these should be called only by MCcomm task once per 400us cycle, use getLastPositionFeedbackValue() from elsewhere
 	s16 getVelocityFeedbackValue();
 	u16 getPositionFeedbackValue();
 
+	u16 getLastPositionFeedbackValue(){ return lastPositionFBValue; }
+	//for emulated encoder output. outputs true one time after feedback device index has been passed
+	//flaw: this method is inaccurate if speed is above 2500 counts/s
+	bool simulatedIndexPulseOutNow()
+	{
+		bool ret=indexHasOccurred;
+		indexHasOccurred=false;
+		return ret;
+	}
+	
 
 	//this method has very high priority and is called from isr at 40kHz
 	void highFrequencyISRTask();
@@ -358,6 +370,14 @@ public:
 	{
 		return brakePoweronReleaseDelayMs;
 	}
+	
+
+	FeedbackDevice getCurrentPositionFeedbackDevice()
+	{
+		return positionFeedbackDevice;
+	}
+
+	bool indexHasOccurred;
 
 	//return true if flag bit is on (drive config param flags). See FLAG_DISABLED_AT_STARTUP etc defines
 	bool isFlagBit(u32 bit)
@@ -424,6 +444,8 @@ private:
 
     int brakePoweronReleaseDelayMs;
     int brakeEngageDelayMs;
+	
+	u16 lastPositionFBValue;
 };
 
 #endif /* SYSTEM_H_ */
