@@ -33,6 +33,11 @@ public:
 	//bool executeHostSideGlobalGetParamCommand(  SMPayloadCommandRet32 & ret );
     u16 getSetParamAddr() const;
 
+    //set ingoring true on high prio stream 1 where other stream setpoints are forwarded. note GC will ignore all setpoints from other streams except from the one where this is set true.
+    void setIgnoreSetpointCommands(bool on)
+    {
+    	ignoreSetpointCommands=on;
+    }
 private:
 	//interpreter specific params
 	u16 setParamAddr, returnParamAddr, returnParamLength;
@@ -40,6 +45,7 @@ private:
 	u32 cumulativeStatus;
 	//SimpleMotionComm *parentComm;
 	System *parentSystem;
+	bool ignoreSetpointCommands;//true on high prio stream 1 where other stream setpoints are forwarded. note GC will ignore all setpoints from other streams except from the one where this is set true.
 };
 
 

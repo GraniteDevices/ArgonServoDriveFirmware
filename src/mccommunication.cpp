@@ -356,8 +356,8 @@ void GCCommunicationTask( void *pvParameters )
     		sys.serialPortGC.sendBuffer();
     		TXpacket.packetNum++;
 
-    		//SimpleMotionCommRS485.incrementSmBusClock( 4 ); //4 because we call it at 2500Hz freq and SM clock has freq of 10kHz
-    		sys.SMComm.incrementSmBusClock( 4 ); //4 because we call it at 2500Hz freq and SM clock has freq of 10kHz
+    		//commented out as now it's called in main.cpp task
+    		//sys.SMComm.incrementSmBusClock( 4 ); //4 because we call it at 2500Hz freq and SM clock has freq of 10kHz
 
         }
 		else//receive timeouted

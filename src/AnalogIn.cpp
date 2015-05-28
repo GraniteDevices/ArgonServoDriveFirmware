@@ -74,7 +74,7 @@ AnalogIn::AnalogIn()
 	 #define ADC_SampleTime_144Cycles                  ((uint8_t)0x06)
 	 #define ADC_SampleTime_480Cycles                  ((uint8_t)0x07)
 	 */
-	u8 sampleTime = ADC_SampleTime_15Cycles; //15 has better SNR than 3, but no further improvement at 28
+	u8 sampleTime = ADC_SampleTime_28Cycles; //15 has better SNR than 3, but no further improvement at 28
 	//u8 sampleTime = ADC_SampleTime_3Cycles; //15 has better SNR than 3, but no further improvement at 28
 
 	GPIO_InitTypeDef GPIO_InitStructure;

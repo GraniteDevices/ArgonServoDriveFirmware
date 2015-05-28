@@ -282,7 +282,7 @@ void DigitalCounterInput::setCountMode( CountMode mode )
 
 }
 
-s32 DigitalCounterInput::getCounter( int sourceNr )
+s32 DigitalCounterInput::getCounter( int sourceNr, bool bipolarPWMoutput )
 {
 	if (countMode == PulseTrain || countMode == Quadrature)
 	{
@@ -291,9 +291,9 @@ s32 DigitalCounterInput::getCounter( int sourceNr )
 	else if (countMode == PWM)
 	{
 		if(sourceNr==0)
-			return PWMIn1.computePWMInput(TIM_GetCapture2( TIM2 ),TIM_GetCapture1( TIM2 ),TIM_GetCounter( TIM2 ));
+			return PWMIn1.computePWMInput(TIM_GetCapture2( TIM2 ),TIM_GetCapture1( TIM2 ),TIM_GetCounter( TIM2 ),bipolarPWMoutput);
 		else if(sourceNr==1)
-			return PWMIn2.computePWMInput(TIM_GetCapture3( TIM1 ),TIM_GetCapture4( TIM1 ),TIM_GetCounter( TIM1 ));
+			return PWMIn2.computePWMInput(TIM_GetCapture3( TIM1 ),TIM_GetCapture4( TIM1 ),TIM_GetCounter( TIM1 ),bipolarPWMoutput);
 		else//invalid sourcenr
 			return 0;
 	}
@@ -326,7 +326,9 @@ PWMInputComputing::PWMInputComputing( u32 maxPulselength )
 	noPWMsignal=true;
 }
 
-s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCounter )
+//if bipolarOutput=true then output will be -16384..16384 from 0-100% duty cycle,
+//if false, then output is 0..16384 from 0-100% duty
+s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCounter, bool bipolarOutput )
 {
 	//if PWM in is stuck high or no edges present, then timer counter keeps counting and capture regs may have old values
 	//so set PWM signal status bad
@@ -352,9 +354,20 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 	if (noPWMsignal == false)
 	{
 		/* Duty cycle computation */
-		//s32 DutyCycle = s32((uint64_t(pulselength) * 100000ULL) / (period)); //0-100000 scale
-		s32 DutyCycle = s32(
+
+		s32 DutyCycle;
+
+		if(bipolarOutput)//PWM only
+		{
+			DutyCycle = s32(
 				(uint64_t( pulselength ) * 32786ULL) / (period) ) - 16384; //-16k..16k scale
+		}
+		else//PWM+DIR mode
+		{
+			DutyCycle = s32(
+				(uint64_t( pulselength ) * 16384ULL) / (period) ); //0k..16k scale
+
+		}
 		return DutyCycle;
 	}
 	else

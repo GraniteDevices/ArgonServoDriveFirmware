@@ -117,6 +117,7 @@ void SystemPeriodicTask( void *pvParameters )
 	int GCUpdateDivider = 0;
 	int GCStatusUpdateRate = 2500 / 15; //0.07 sec interval
 	bool internalCommErrorForwarded = false;
+	bool SMBusFaultForwarded = false;
 	u32 prevDigitalInputs = sys.physIO.getGPInputs();
 
 
@@ -196,6 +197,21 @@ void SystemPeriodicTask( void *pvParameters )
 				sys.setParameter( SMP_FAULTS, FLT_GC_COMM );
 				internalCommErrorForwarded = true;
 			}
+
+			//if SMbus fault behavior is configured to cause fault stop state, do it
+			if( (sys.SMComm.getSMBusFaultBehavior(SMP_VALUE_MASK)&FAULT_BEHAVIOR_ENABLE_FAULTSTOP)
+					&& (sys.getFaultBitsReg() & FLT_COMMUNICATION)
+					&& SMBusFaultForwarded == false)
+			{
+				//do it by sending fault but to GC
+				sys.setParameter( SMP_FAULTS, FLT_COMMUNICATION );
+				SMBusFaultForwarded = true;//avoid spamming it
+			}
+
+			//reset forwarding status so it can occur again after clearfaults
+			if( (sys.getFaultBitsReg() & FLT_COMMUNICATION)==0 )
+				SMBusFaultForwarded = false;
+
 		}
 	}
 }
@@ -255,22 +271,33 @@ void UpdateGPIOandBrakeTask( void *pvParameters )
 
 void SimpleMotionBufferedTask( void *pvParameters )
 {
+	portTickType xLastWakeTime;
+	const portTickType xFrequency = 1;//2500hz
+
+    // Initialise the xLastWakeTime variable with the current time.
+    xLastWakeTime = xTaskGetTickCount();
+
+	bool executedSetPointCmd=true;//is set false by update if command was not setpoint or nothing was executed. not touched if no commands executed
+
 	for( ;; )
 	{
-		/*
-		 * wait for MC communication task to call SMComm method to update bus
-		 * clock and release this semaphore
-		 * (timer tick which ultimately lets this code to run once)
-		 */
-		if (xSemaphoreTake( sys.SMComm.SimpleMotionBufferedTaskSemaphore, portMAX_DELAY )
-				== pdTRUE)
+		if(executedSetPointCmd)
 		{
-			xSemaphoreTake( sys.SMComm.bufferMutex, portMAX_DELAY );
-			sys.SMComm.bufferedCmdUpdate();
-			xSemaphoreGive( sys.SMComm.bufferMutex );
+	        // Wait for the next cycle.
+	        vTaskDelayUntil( &xLastWakeTime, xFrequency );
+			sys.SMComm.incrementSmBusClock(4);//dont increment clock for non-setpoint cmd or no commands at all
+		}else
+		{
+			NOP;
 		}
+
+		xSemaphoreTake( sys.SMComm.bufferMutex, portMAX_DELAY );
+		executedSetPointCmd=true;
+		sys.SMComm.bufferedCmdUpdate(executedSetPointCmd);//if executedSetPointCmd=false then next command will be executed immediately after this
+		xSemaphoreGive( sys.SMComm.bufferMutex );
 	}
 }
+
 
 void vApplicationStackOverflowHook( xTaskHandle *pxTask,
 		signed char *pcTaskName )

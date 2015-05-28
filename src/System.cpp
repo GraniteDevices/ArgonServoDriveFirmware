@@ -45,6 +45,9 @@ System::System() :
 	GCFaultBits=0;
 	GCFirstFault=0;
 	SignalReg=0;
+	DriveFlagBits=0;
+	setpointOffset=0;
+	serialSetpoint=0;
 	//deviceResetRequested=false;
 
 	//encoder is the default setting, changed later if configured so
@@ -71,6 +74,8 @@ System::System() :
     {
     	setFault( FLT_FIRMWARE|FLT_ALLOC,FAULTLOCATION_BASE+01);
     }
+
+    INPUT_REFERENCE_QUEUE.setIgnoreSetpointCommands(true);
 }
 
 System::~System()
@@ -294,38 +299,72 @@ u32 System::getStatusBitsReg() const
 
 s32 System::getInputReferenceValue()
 {
+	s32 setpoint=0;
+
 	switch (inputReferenceMode)
 	{
 	case Serialonly:
-		return 0;
+		setpoint=0;
 		break;
 	case Pulsetrain:
-		return digitalCounterInput.getCounter();
+		setpoint=digitalCounterInput.getCounter();
 		break;
 	case Quadrature:
-		return digitalCounterInput.getCounter();
+		setpoint=digitalCounterInput.getCounter();
 		break;
 	case PWM:
-		return digitalCounterInput.getCounter();
+		if(isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//PWM+DIR mode
+		{
+			if(physIO.dinHSIN1.inputState()) //non inverted if 0
+			{
+				setpoint=(digitalCounterInput.getCounter(0,false))+setpointOffset;
+				if(setpoint<0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
+			else//inverted
+			{
+				setpoint=-(digitalCounterInput.getCounter(0,false)+setpointOffset);
+				if(setpoint>0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
+		}
+		else//PWM only input
+		{
+			setpoint=digitalCounterInput.getCounter(0,true);
+			if(!digitalCounterInput.isInvalidPWMSignal())//good only for this mode, dir mode no pwm is valid too..
+				setpoint+=setpointOffset;
+		}
 		break;
 	case Analog:
-		if(physIO.getAnalogInput2()<4915) //non inverted analog1 if anain2<3.0V
-			return physIO.getAnalogInput1();
-		else//inverted analog if anain2=3-24V
-			return (-physIO.getAnalogInput1());
+		if( isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//DIR input active
+		{
+			if(physIO.getAnalogInput2()>4915)//inverted analog1 if anain2>3.0V
+			{
+				setpoint = -(physIO.getAnalogInput1()+setpointOffset);//inverted
+				if(setpoint>0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
+			//non-inverted analog if anain2 is below 3V
+			else
+			{
+				setpoint = physIO.getAnalogInput1()+setpointOffset;//non inverted
+				if(setpoint<0) setpoint=0;//dont allow wrong polarity in dir input mode
+			}
+		}
+		else
+		{
+			setpoint=physIO.getAnalogInput1()+setpointOffset;
+		}
 		break;
 	case Reserved1:
-		return 0;
+		setpoint=0;
 		break;
 	case Reserved2:
-		return 0;
+		setpoint=0;
 		break;
 	default:
 		return 0;
 		break;
 	}
 
-	return 0;
+	return setpoint+serialSetpoint;
 }
 
 s16 System::getVelocityFeedbackValue()
@@ -681,6 +720,9 @@ bool System::readInitStateFromGC()
 		break;
 	}
 
+	DriveFlagBits=sys.getParameter(SMP_DRIVE_FLAGS, fail );
+
+	setpointOffset==sys.getParameter(SMP_ABS_IN_OFFSET, fail );
 
 	//if any GC command failed
 	if (fail)
