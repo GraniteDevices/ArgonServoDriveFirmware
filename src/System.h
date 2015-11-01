@@ -48,6 +48,12 @@
  * 		-support PWM+dir and Analog+dir setpoints with on/off option in Granity
  * 		-Increase ADC sampling time (in hope that it reduces ADC channel crosstalk)
  * 		-requires GraniteCore FW version 1090 or later
+ * 1095 -changed communication protocol between GraniteCore chip and I/O side chip (GC-IO protocol):
+ *       1) Now instead of sending/receiving two simultaneous streams of SimpleMotion subpackets (SMPs),
+ *       we send only one and hard coded 32 bit setpoint value. Originally stream1 was used
+ *       to send setpoints. Also return data stream of sream1 is removed
+ *       2) Added clearController bit to GC-IO protocol. When GC returns value 1 on it, IO side resets setpoint to zero.
+ *       Note: this breaks compatibility with older GC side firmwares, to use new this version, GC FW version 1095+ or racing simulator version 9195+ is required
  */
 
 /*
@@ -55,7 +61,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1090
+#define FW_VERSION 1095
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -94,7 +100,6 @@
 #define SM_BUFFERED_CMD_QUEUE GCCmdStream2_HighPriority
 #define SM_INSTANT_CMD_QUEUE GCCmdStream2_LowPriority
 #define SYS_CMD_QUEUE GCCmdStream2_LowPriority
-#define INPUT_REFERENCE_QUEUE GCCmdStream1_HighPriority
 
 #define STAT_TARGET_REACHED BV(1)
 #define STAT_FERROR_RECOVERY BV(2)
@@ -231,9 +236,6 @@ public:
 	 * and stream 1 is dedicated for reference signal while stream 2 is
 	 * shared between 3 "users" with different priorities. highes priority
 	 * queue will be served first. stream 1 and 2 operate simultaneously. */
-
-	//max update rate stream for torq/vel/pos reference data
-	SMCommandQueue GCCmdStream1_HighPriority;
 
 
 	//for instant commands from SM485 bus

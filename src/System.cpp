@@ -28,8 +28,7 @@ System::System() :
 		physIO(this),
 		SMComm( &serialPortRS485, this, physIO.getDIPSwitchAddress() ),
 		serialPortRS485( Serial::RS485,
-				this ), serialPortGC( Serial::DSC, this ), GCCmdStream1_HighPriority(
-				this, COMMAND_QUEUE1_SIZE, "cmdQ1Hi" ), GCCmdStream2_LowPriority(
+				this ), serialPortGC( Serial::DSC, this ), GCCmdStream2_LowPriority(
 				this, COMMAND_QUEUE2_SIZE, "cmdQ2Med" ), GCCmdStream2_HighPriority(
 				this, COMMAND_QUEUE2_SIZE, "cmdQS2High" ), GCCmdStream2_MediumPriority(
 				this, SYS_COMMAND_QUEUE_SIZE, "cmdQ2Low" ),
@@ -75,7 +74,6 @@ System::System() :
     	setFault( FLT_FIRMWARE|FLT_ALLOC,FAULTLOCATION_BASE+01);
     }
 
-    INPUT_REFERENCE_QUEUE.setIgnoreSetpointCommands(true);
 }
 
 System::~System()
