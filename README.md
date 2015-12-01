@@ -22,7 +22,9 @@ A GCC compiler toolchain for ARM is needed to compile the source code. Get GCC A
 
 b) GNU Make
 
-Source code of firmware and makefirmware utily is easily compiled by `make` command. For that, the GNU make must be installed in system. For Windows system, an easy way to obtain make is to install msys-make package from MinGW Installation Manager. MinGW site: http://www.mingw.org/ Download the installation manager at: http://sourceforge.net/projects/mingw/files/Installer/
+Source code of firmware and makefirmware utily is easily compiled by `make` command. For that, the GNU make must be installed in system. 
+
+For Windows system, an easy way to obtain make is to install "msys-base" and "msys-make" packages from MinGW Installation Manager. MinGW site: http://www.mingw.org/ Download the installation manager at: http://sourceforge.net/projects/mingw/files/Installer/ . You may also add MSys binaries to system environment variable called PATH to have make command to work from command prompt without typing full executable path every time. If the default folder was used, make.exe is located at: C:\MinGW\msys\1.0\bin.
 
 Tips
 ----
