@@ -237,7 +237,7 @@ DEBUGLVL = -g2 -gdwarf-2
 ASFLAGS = $(MCFLAGS) $(DEBUGLVL) -mthumb -Wa,-ahlms=$(addprefix $(OBJDIR),$(notdir $<.lst)) $(ADEFS)
 
 CPFLAGS = $(MCFLAGS) $(OPT) $(DEBUGLVL) -ffunction-sections -fdata-sections -fomit-frame-pointer -mthumb  -Wall -fverbose-asm -Wa,-ahlms=$(addprefix $(OBJDIR),$(notdir $<.lst)) $(DEFS)
-CPPFLAGS = $(MCFLAGS) $(OPT) $(DEBUGLVL) -fno-rtti -fno-exceptions -ffunction-sections -fno-threadsafe-statics -fdata-sections -fomit-frame-pointer -mthumb  -Wall -fverbose-asm -Wa,-ahlms=$(addprefix $(OBJDIR),$(notdir $<.lst)) $(DEFS)
+CPPFLAGS = $(MCFLAGS) $(OPT) $(DEBUGLVL) -std=c++11 -fno-rtti -fno-exceptions -ffunction-sections -fno-threadsafe-statics -fdata-sections -fomit-frame-pointer -mthumb  -Wall -fverbose-asm -Wa,-ahlms=$(addprefix $(OBJDIR),$(notdir $<.lst)) $(DEFS)
 #CPPFLAGS = $(MCFLAGS) $(OPT) $(DEBUGLVL) -fno-rtti -fno-exceptions -ffunction-sections -fno-threadsafe-statics -fdata-sections -fomit-frame-pointer -mthumb -Wall -fverbose-asm -Wa,-ahlms=$<.lst $(DEFS)
 
 #CPPFLAGS = $(MCFLAGS) $(OPT) $(DEBUGLVL)  -mthumb -Wall -fverbose-asm -Wa,-ahlms=$<.lst $(DEFS)

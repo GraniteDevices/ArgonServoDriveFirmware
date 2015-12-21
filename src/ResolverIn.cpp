@@ -29,6 +29,10 @@
 #include "globals.h"
 #include "utils.h"
 
+#ifndef M_PI
+#define M_PI		3.14159265358979323846
+#endif
+
 //10kHz switching
 //#define RESOLVER_FREQ 10000
 

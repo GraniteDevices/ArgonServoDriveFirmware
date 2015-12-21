@@ -48,6 +48,7 @@ System::System() :
 	DriveFlagBits=0;
 	setpointOffset=0;
 	serialSetpoint=0;
+	tachoOffset=0;
 	//deviceResetRequested=false;
 
 	//encoder is the default setting, changed later if configured so
@@ -366,6 +367,78 @@ s32 System::getInputReferenceValue()
 	return setpoint+serialSetpoint;
 }
 
+//waits motor to stop and to get static offset of tachometer, return true on success. consumes ~0.3-5 secs time
+bool System::calibrateTachoOffset()
+{
+	const int n=128;
+	int maxDeviation=16384/100;//tolerances where to settle, adc units. 16384/100=0.1V
+	s16 rawSamples[n];
+	bool alldone=false;
+
+	//lambdas
+	auto getMin = [&]( s16 data[] ) {
+			int min=999999;
+			for( int i=0;i<n;i++)
+				if(min>data[i])
+					min=data[i];
+			return min;
+	};
+	auto getMax = [&]( s16 data[] ) {
+			int max=-999999;
+			for( int i=0;i<n;i++)
+				if(max<data[i])
+					max=data[i];
+			return max;
+	};
+	auto getAvg = [&]( s16 data[] ) {
+			s32 sum=0;
+			for( int i=0;i<n;i++)
+					sum+=data[i];
+			return sum/n;
+	};
+
+	int storepos=0, totaltries=0;
+
+	//collect analog samples until all of them have settled within specified window. i.e.  if motor is decelerating during power-on, it should wait until it stops (voltage stabilizes)
+	while(alldone==false)
+	{
+		alldone=true;//set false later
+
+		rawSamples[storepos]=physIO.ADin.getVoltage(AnalogIn::AnaIn2);
+
+		//analyze
+		int dmin=getMin(rawSamples);
+		int dmax=getMax(rawSamples);
+
+		if( dmax-dmin >maxDeviation )//all samples didn't not fit in window
+			alldone=false;
+
+		totaltries++;
+
+		storepos++;
+		if(storepos>=n)
+			storepos=0;
+
+		Delay_100us(30);
+
+		if(totaltries<n)//prevent finishing before all samples collected
+			alldone=false;
+
+		//timeout, motor kept moving
+		if(totaltries>1000)//few seconds
+		{
+			setFault(FLT_INIT,FAULTLOCATION_BASE+750);
+			return false;
+		}
+	}
+
+	tachoOffset=getAvg(rawSamples);
+	setDebugParam(4,tachoOffset);
+	setDebugParam(5,totaltries);
+
+	return true;
+}
+
 s16 System::getVelocityFeedbackValue()
 {
 	static u32 timeOfLastCall=0;
@@ -379,6 +452,10 @@ s16 System::getVelocityFeedbackValue()
 		break;
 	case Resolver:
 		uncompensatedVel=resolver.getVelocity();
+		break;
+	case Tacho:
+		//don't process value with uncompensatedVel because tacho value is not affected by time jitter
+		return (physIO.getAnalogInput2()-tachoOffset) /64;//value 16384=10V
 		break;
 	case None:
 	default:
@@ -714,11 +791,44 @@ bool System::readInitStateFromGC()
 	case 0://same as FB1
 		velocityFeedbackDevice=positionFeedbackDevice;
 		break;
-	default://at the moment no dual loop FB supported so cause fault if FB2 is different from FB1
+	case 1:
+		velocityFeedbackDevice=Encoder;
+		break;
+	case 3:
+		velocityFeedbackDevice=Resolver;
+		break;
+	case  10:
+		velocityFeedbackDevice=Tacho;
+
+		break;
+	default:
 		setFault(FLT_ENCODER,FAULTLOCATION_BASE+202);//unsupported fb2 device choice
 		velocityFeedbackDevice=None;//even when it failed, set to encoder just to ensure a valid value is present in variable
 		break;
 	}
+positionFeedbackDevice=None;
+velocityFeedbackDevice=Tacho;//override
+
+	if(velocityFeedbackDevice==Tacho)
+		calibrateTachoOffset();
+
+//	roadblock
+/*tacho dev notes:
+ * -toteuta resoluutio parsku. enkodoereilla ppr ja tacholla mv/krpm
+ * -toteuta gainien skaalaus fbd resojen mukaan. nyt tacholla vel gainit on överit koska vel range 16000
+ * -pos to vel ff gaini vapaasti säädettäväksi jotta fbd gainien ero kumottavissa
+ * -toteuta vel invert fbd
+ * -granity:
+ * --cvl cal täytyy laskea eri tavalla cm mukaan koska fbd skaala eri
+ * --muut joko hw scale booleanin mukaan (fbd valinta)
+ * --ehkä oma funkkari joka palauttaa nopeusresoluution tms
+ * -tacholle vel offset parsku ja autoset tai bootissa nollaus kun motti paikallaan?
+ * --ootetaan sekunti tms että vel fbd pysyy vakiona ja nollataan sit
+ * -vel infon lpf io fw:hen
+ * --samoin resolverille? ehkä median filtteri
+ *
+ *
+ * */
 
 	DriveFlagBits=sys.getParameter(SMP_DRIVE_FLAGS, fail );
 

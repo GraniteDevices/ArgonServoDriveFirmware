@@ -63,7 +63,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1095
+#define FW_VERSION 3095
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -258,7 +258,7 @@ public:
 	/*Feedback drivers*/
 	EncoderIn encoder;
 	ResolverIn resolver;
-	enum FeedbackDevice { None,Encoder,Resolver };
+	enum FeedbackDevice { None,Encoder,Resolver,Tacho };
 
 
 	/* Drive input reference singal methods */
@@ -403,6 +403,10 @@ public:
 		digitalCounterInput.setCounter(0);
 	}
 
+	//waits motor to stop and to get static offset of tachometer, return true on success. consumes ~0.3-5 secs time
+	bool calibrateTachoOffset();
+
+
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc
 	u32 FaultBitsReg;
@@ -449,6 +453,8 @@ private:
     int brakeEngageDelayMs;
 	
 	u16 lastPositionFBValue;
+
+	int tachoOffset;
 };
 
 #endif /* SYSTEM_H_ */
