@@ -722,7 +722,7 @@ bool System::readInitStateFromGC()
 
 	DriveFlagBits=sys.getParameter(SMP_DRIVE_FLAGS, fail );
 
-	setpointOffset==sys.getParameter(SMP_ABS_IN_OFFSET, fail );
+	setpointOffset=sys.getParameter(SMP_ABS_IN_OFFSET, fail );
 
 	//if any GC command failed
 	if (fail)
