@@ -56,6 +56,7 @@
  *       to send setpoints. Also return data stream of sream1 is removed
  *       2) Added clearController bit to GC-IO protocol. When GC returns value 1 on it, IO side resets setpoint to zero.
  *       Note: this breaks compatibility with older GC side firmwares, to use new this version, GC FW version 1095+ or racing simulator version 9195+ is required
+ * 1096  -add motor commutation sensor (Hall simulation) support for resolver.
  */
 
 /*
@@ -63,7 +64,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1095
+#define FW_VERSION 1096
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -292,6 +293,8 @@ public:
 	//these should be called only by MCcomm task once per 400us cycle, use getLastPositionFeedbackValue() from elsewhere
 	s16 getVelocityFeedbackValue();
 	u16 getPositionFeedbackValue();
+	//get Hall sensor bits, or equivalent from a feedback device (simulated Halls on resolver)
+	u8 getCommutationSensorState();
 
 	u16 getLastPositionFeedbackValue(){ return lastPositionFBValue; }
 	//for emulated encoder output. outputs true one time after feedback device index has been passed

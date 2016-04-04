@@ -422,6 +422,22 @@ u16 System::getPositionFeedbackValue()
 	return lastPositionFBValue;
 }
 
+//get Hall sensor bits, or equivalent from a feedback device (simulated Halls on resolver)
+u8 System::getCommutationSensorState()
+{
+	switch(velocityFeedbackDevice)//Use velocity feedback device here because it's mounted on motor (a.k.a. inner loop feedback). Position feedback device may be outer loop feedback device when implemented.
+	{
+	case Encoder:
+		return physIO.getHallSensorState();
+		break;
+	case Resolver:
+		return resolver.getCommutationSensorState();
+		break;
+	default:
+		return 0;
+	}
+}
+
 
 //volatile int adcrunover=0;
 volatile bool adcread=true;
@@ -722,7 +738,7 @@ bool System::readInitStateFromGC()
 
 	DriveFlagBits=sys.getParameter(SMP_DRIVE_FLAGS, fail );
 
-	setpointOffset==sys.getParameter(SMP_ABS_IN_OFFSET, fail );
+	setpointOffset=sys.getParameter(SMP_ABS_IN_OFFSET, fail );
 
 	//if any GC command failed
 	if (fail)

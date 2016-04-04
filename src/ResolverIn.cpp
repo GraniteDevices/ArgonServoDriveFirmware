@@ -237,6 +237,24 @@ bool ResolverIn::hasIndexUpdated()
 	return temp;
 }
 
+//return emulated Hall sensor bits
+u8 ResolverIn::getCommutationSensorState()
+{
+	//alustuu 1->2 angle rajalle (3->2 lut arvoissa) kuka motilla. pos torq suunta samaan suuntaan kun resolverin pos suunta. fbi=0.
+	const u8 hallLUT[]={
+			0b001,
+			0b011,
+			0b010,
+			0b110,
+			0b100,
+			0b101
+	};
+
+	//currAngle = 0..65535 and we convert it to range 0..5 for LUT
+	return hallLUT[((6*u32(currAngle))/65536)];
+}
+
+
 #if ST_APPNOTE_CODE
 /** @brief Sort the N ADC samples
 * @param ADC samples to be sorted

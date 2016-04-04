@@ -107,7 +107,7 @@ void GCCommunicationTask( void *pvParameters )
 	bool handleRetData=false;
 
 	TXpacket.packetType=0;
-	TXpacket.hallSensorState=sys.physIO.getHallSensorState();
+	TXpacket.hallSensorState=sys.getCommutationSensorState();
 	TXpacket.packetNum=0;
 	TXpacket.stream2interpreter=INTERPRETER_SYSCMD;
 	TXpacket.positionFB=0;
@@ -277,7 +277,7 @@ void GCCommunicationTask( void *pvParameters )
     		sys.encoder.update();
     		TXpacket.positionFB=sys.getPositionFeedbackValue();
     		TXpacket.velocityFB=sys.getVelocityFeedbackValue();
-    		TXpacket.hallSensorState=sys.physIO.getHallSensorState();
+    		TXpacket.hallSensorState=sys.getCommutationSensorState();
     		TXpacket.setpoint=sys.getInputReferenceValue();
     		TXpacket.CRCsum=CRC8CalcFromBuffer((u8*)&TXpacket,TX_PACKET_SIZE-1,30);
     		sys.serialPortGC.putBuffer((u8*)&TXpacket,TX_PACKET_SIZE);

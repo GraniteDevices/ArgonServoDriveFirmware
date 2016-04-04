@@ -217,6 +217,7 @@
     #define SMP_SYSTEM_SAMPLE_TEST_VARIABLES 8 //production testing function
     #define SMP_SYSTEM_START_PRODUCTION_TEST 16 //production testing function
     #define SMP_SYSTEM_STOP_PRODUCTION_TEST 32 //production testing function
+	#define SMP_SYSTEM_CONTROL_IO_SIDE_READY_SIGNAL 16384//sent from io side when it is initialzied
 #define SMP_POS_FERROR_TRIP 555
 #define SMP_VEL_FERROR_TRIP 556
 #define SMP_POS_ERROR_RECOVERY_SPEED 557

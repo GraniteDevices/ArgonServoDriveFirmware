@@ -66,6 +66,9 @@ void SystemInitTask( void *pvParameters )
 		bool fail = false;
 
 		fail=sys.readInitStateFromGC();
+
+		//send info that we're ready in IO side. GC side will not continue init before this.
+		sys.setParameter(SMP_SYSTEM_CONTROL,SMP_SYSTEM_CONTROL_IO_SIDE_READY_SIGNAL);
 	}
 }
 

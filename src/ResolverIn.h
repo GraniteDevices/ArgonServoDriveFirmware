@@ -44,6 +44,9 @@ public:
 	/* return true if simulated index value has been updated and can be read with getCounterAtIndex()
 	* note: calling getCounterAtIndex() will reset this status */
 	bool hasIndexUpdated();
+
+	//return emulated Hall sensor bits
+	u8 getCommutationSensorState();
 private:
 
 	bool zeroCrossed;//true if zero has been crossed (index simulation point)
