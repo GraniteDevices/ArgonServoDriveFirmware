@@ -22,8 +22,8 @@
 
 //cmd number must be 0-31
 
-#define SM_VERSION 90
-#define SM_VERSION_COMPAT 85
+#define SM_VERSION 25
+#define SM_VERSION_COMPAT 25
 
 #define MAX_PAYLOAD_BYTES 120
 
@@ -143,8 +143,9 @@ public:
 	~SimpleMotionComm();
 	/*poll serial line and handle data*/
 	u8 poll();
-	/*executes command from user cmd buffer */
-	void bufferedCmdUpdate();
+	/*executes command from user cmd buffer, executedSetpointCommand is set true if commadn that was executed
+	 * modifies setpoints. used to allow executing these fast with infinite frequency between setpoint cmds.*/
+	void bufferedCmdUpdate( bool &executedSetpointCommand );
 
 
 	/* in getters "attribute" is SMP parameter attribute bits (actual value/min/max selector) */
@@ -164,6 +165,9 @@ public:
     bool setBusTimeout(u16 busTimeout);//return false on fail, unit 100us
     s16 getSMBusVersion(u16 attribute) const; //this interpreter latest supported protocol version
     s16 getSMBusCompatVersion(u16 attribute) const; //oldest protocol version supported by this interpreter
+    u32 getSMBusFaultBehavior(u16 attribute) const;
+    bool setSMBusFaultBehavior(u32 behabiorbits);
+
     s16 getBufferedCmdStatus(u16 attribute) const;
     u32 getSMBusBufferFreeBytes(u16 attribute) const;
     void loopBackComm();
@@ -173,8 +177,20 @@ public:
     xSemaphoreHandle bufferMutex;
     xSemaphoreHandle SimpleMotionBufferedTaskSemaphore;
 
+
+
+    //return true if any FLT_SM485 should cause faulstop device status
+    bool SMFaultShouldCauseFaultstop() { return bool(faultBehavior&1);}
+    //sets fault and causes device fault stop if fault behavior is set accordingly (not rly any more)
+    void SMfault(u32 faultbits, u32 faultLocation);
+
   //  typedef enum {Idle=0, Running=1 } BufferedCmdState;
 private:
+    //just call often
+    void watchdogUpdate();
+    //reset watchdog timer if command received OK
+    void watchdogReset();
+
     bool receptionTimeouted();//return true if reception time has passed
 
     //friend class SMCommandInterpreter;//so SMCommandInterpreter can access private vars of this class
@@ -185,7 +201,7 @@ private:
     void makeReturnPacket(u8 retid, u8 datalen, u8 *cmddata = NULL);
     void makeReturnPacket(u8 retid, u8 byte1, u8 byte2);
     void makeReturnPacket( u8 retid, RingBuffer &returnPayload );
-    bool executeBufferedCmd();
+    bool executeBufferedCmd( bool &executedSetpointCommand );
     void executeSMcmd();
     void startProcessingBufferedCommands();
     void resetReceiverState();
@@ -219,6 +235,12 @@ private:
     xSemaphoreHandle mutex;
 
     System *parentSystem;
+
+    u32 smBusVersionRO, smBusCompatVersionRO;
+    u32 smBusBufFreeBytesDummy;
+    u32 faultBehavior;//0=disable 1=any SM error cause faultstop, >=100 enable watchdog too
+    u32 lastReceivedValidPacketTimestamp;//in system clock us
+
 };
 
 void SimpleMotionTask( void *pvParameters );

@@ -122,6 +122,8 @@ public:
 	DigitalOutPin mechBrakeRelease;
 	DigitalOutPin doutDebug1;
 	DigitalOutPin doutDebug2;
+	DigitalOutPin doutDebug3;
+	DigitalOutPin doutDebug4;
 
 	AnalogIn ADin;
 

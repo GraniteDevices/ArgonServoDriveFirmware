@@ -46,7 +46,7 @@ typedef struct {
 	u8 stream2interpreter:2;//0=sm485 buffered 1=stm32 2=sm485 instant (0=highest priority)
 	u16 positionFB;
 	s16 velocityFB;
-	SMPayloadCommand32 cmdStream1;
+	u32 setpoint;
 	SMPayloadCommand32 cmdStream2;
 	u8 CRCsum;
 } __attribute__ ((packed)) GCSendPacket;
@@ -54,11 +54,9 @@ typedef struct {
 typedef struct {
 	u8 packetType :4;
 	u8 packetNum: 2; //counts from 0 to 3 and receiver verifies that no packets missed
-	bool reserved1:1;
+	bool clearController:1;//this bit is 1 if GC requests to reset setpoint counter to zero (i.e. occurs on control mode change, homing done and DIV parameter change)
 	bool CRCinvalid:1; //true if CRC is knowingly invalid (happens momentarily during save to flash command). seems to repeat ~30 times during save
-	SMPayloadCommandRet32 cmdStream1Ret;
 	SMPayloadCommandRet32 cmdStream2Ret;
-//	u16 reserved5;
 	u8 CRCsum;
 } __attribute__ ((packed)) GCRecvPacket;
 
@@ -73,7 +71,7 @@ typedef struct {
 #define RET_DISCARD 128
 #define RET_NOP 1
 #define RET_TO_SYSQUE 2
-#define RET_TO_FASTQUE 3
+//#define RET_TO_FASTQUE 3
 #define RET_TO_SM485INSTQUE 4
 #define RET_TO_SM485BUFQUE 5
 
@@ -105,7 +103,6 @@ void GCCommunicationTask( void *pvParameters )
 	GCRecvPacket RXpacket;
 
 	//decision bytes of what do do for return data once received from GC
-	RingBuffer cmdStream1RetHanlding(4);
 	RingBuffer cmdStream2RetHanlding(4);
 	bool handleRetData=false;
 
@@ -118,18 +115,8 @@ void GCCommunicationTask( void *pvParameters )
 	SMPayloadCommand32 cmdNOP;
 	cmdNOP.ID=SMPCMD_SET_PARAM_ADDR;
 	cmdNOP.param=SMP_ADDR_NOP;
-	TXpacket.cmdStream1=cmdNOP;
 	TXpacket.cmdStream2=cmdNOP;
-
-
-	//initialize input ref stream param address before sending input reference commands to it
-	{
-		SMPayloadCommandForQueue inputRefCmd;
-		inputRefCmd.ID=SMPCMD_SET_PARAM_ADDR;
-		inputRefCmd.param=SMP_ABSOLUTE_POS_TARGET;
-		inputRefCmd.discardRetData=true;
-		sys.INPUT_REFERENCE_QUEUE.sendCommand(inputRefCmd);
-	}
+	TXpacket.setpoint=0;
 
 	//max waiting time for RX data fron DSC, initial value=infinite
 	portTickType ReceiveTimeOut=INIT_COMM_TIMEOUT;
@@ -182,46 +169,19 @@ void GCCommunicationTask( void *pvParameters )
     			sys.setFault(FLT_GC_COMM,600101);
     		}
 
+    		//clearController bit is 1 if GC requests to reset setpoint counter to zero (i.e. occurs on control mode change, homing done and DIV parameter change)
+    		if(RXpacket.clearController)
+    			sys.setSerialSetpoint(0);
+
     		/*start handling cmd return data streams after there has been 3 or more tx packets */
     		if(RXPacketNum>=3)handleRetData=true;
     		if(handleRetData)
     		{
     			bool shouldBeDiscarded;
 
-    			//get info of how to handle this return data packet from GC stream 1
-    			u8 packetDestination=cmdStream1RetHanlding.get();
-    			if(packetDestination&RET_DISCARD)
-    				shouldBeDiscarded=true;
-    			else
-    				shouldBeDiscarded=false;
-    			packetDestination=packetDestination&(~RET_DISCARD);//mask discard bit out
-
-    			//get stream 1 handle instructions from FIFO
-    			//should get RET_DISCARD if cmdNOP was commanded (ie. no commands sent)
-    			switch(packetDestination)
-    			{
-    			case RET_TO_FASTQUE:
-    				sys.GCCmdStream1_HighPriority.pushAnswer(RXpacket.cmdStream1Ret,shouldBeDiscarded);
-    				break;
-    			case RET_TO_SM485INSTQUE:
-    				sys.GCCmdStream2_LowPriority.pushAnswer(RXpacket.cmdStream1Ret,shouldBeDiscarded);
-    				break;
-    			case RET_TO_SM485BUFQUE:
-    				sys.GCCmdStream2_HighPriority.pushAnswer(RXpacket.cmdStream1Ret,shouldBeDiscarded);
-    				break;
-    			case RET_TO_SYSQUE:
-    				sys.GCCmdStream2_MediumPriority.pushAnswer(RXpacket.cmdStream1Ret,shouldBeDiscarded);
-    				break;
-    			case RET_NOP:
-    				break;
-    			//case RET_DISCARD:
-    			default:
-    				sys.setFault(FLT_FIRMWARE,600102);
-    				break;
-    			}
 
     			//get info of how to handle this return data packet from GC stream 2
-    			packetDestination=cmdStream2RetHanlding.get();
+    			u8 packetDestination=cmdStream2RetHanlding.get();
     			if(packetDestination&RET_DISCARD)
     				shouldBeDiscarded=true;
     			else
@@ -232,9 +192,6 @@ void GCCommunicationTask( void *pvParameters )
     			//get stream 2 handle instructions from FIFO
     			switch(packetDestination)
     			{
-    			case RET_TO_FASTQUE:
-    				sys.GCCmdStream1_HighPriority.pushAnswer(RXpacket.cmdStream2Ret,shouldBeDiscarded);
-    				break;
     			case RET_TO_SM485INSTQUE:
     				sys.GCCmdStream2_LowPriority.pushAnswer(RXpacket.cmdStream2Ret,shouldBeDiscarded);
     				break;
@@ -260,18 +217,6 @@ void GCCommunicationTask( void *pvParameters )
     		 * Make packet that is being sent to GC side (drive DSC)
     		 */
 
-
-    		/* check if input ref queue is empty (let stream init commands go before sending
-    		 * actual references to avoid queuing delay)
-    		 */
-    		if( sys.INPUT_REFERENCE_QUEUE.numberOfCommandPacketsWaiting()<1 )
-    		{
-        		SMPayloadCommandForQueue inputRefCmd;
-        		inputRefCmd.ID=SMPCMD_32B;
-        		inputRefCmd.param=sys.getInputReferenceValue();
-        		inputRefCmd.discardRetData=true;
-    			sys.INPUT_REFERENCE_QUEUE.sendCommand(inputRefCmd);
-    		}
 
     		/* if CMD is inserted here, return data is valid after 3 cycles (this+2 latency cycles).
     		 * cycle 0 = reset, very first RX
@@ -327,37 +272,20 @@ void GCCommunicationTask( void *pvParameters )
 				cmdStream2RetHanlding.put(RET_NOP|RET_DISCARD);
     		}
 
-      		/* fetch cmd from user queue1 */
-       		if(sys.GCCmdStream1_HighPriority.numberOfCommandPacketsWaiting())
-       		{
-       			SMPayloadCommandForQueue txCmd=sys.GCCmdStream1_HighPriority.popNextPendingCommand(empty);
-       			TXpacket.cmdStream1.ID=txCmd.ID;//found cmd, copy
-       			TXpacket.cmdStream1.param=txCmd.param;//found cmd, copy
-       			if(txCmd.discardRetData)
-       				cmdStream1RetHanlding.put(RET_TO_FASTQUE|RET_DISCARD);
-       			else
-       				cmdStream1RetHanlding.put(RET_TO_FASTQUE);
-       		}
-       		else
-       		{
-       			TXpacket.cmdStream1=cmdNOP;//no cmds
-   				cmdStream1RetHanlding.put(RET_NOP|RET_DISCARD);
-       		}
-
-
 
     		/*insert other data to tx RXPacketNum */
     		sys.encoder.update();
     		TXpacket.positionFB=sys.getPositionFeedbackValue();
     		TXpacket.velocityFB=sys.getVelocityFeedbackValue();
     		TXpacket.hallSensorState=sys.physIO.getHallSensorState();
+    		TXpacket.setpoint=sys.getInputReferenceValue();
     		TXpacket.CRCsum=CRC8CalcFromBuffer((u8*)&TXpacket,TX_PACKET_SIZE-1,30);
     		sys.serialPortGC.putBuffer((u8*)&TXpacket,TX_PACKET_SIZE);
     		sys.serialPortGC.sendBuffer();
     		TXpacket.packetNum++;
 
-    		//SimpleMotionCommRS485.incrementSmBusClock( 4 ); //4 because we call it at 2500Hz freq and SM clock has freq of 10kHz
-    		sys.SMComm.incrementSmBusClock( 4 ); //4 because we call it at 2500Hz freq and SM clock has freq of 10kHz
+    		//commented out as now it's called in main.cpp task
+    		//sys.SMComm.incrementSmBusClock( 4 ); //4 because we call it at 2500Hz freq and SM clock has freq of 10kHz
 
         }
 		else//receive timeouted

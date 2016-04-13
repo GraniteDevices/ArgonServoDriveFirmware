@@ -19,6 +19,7 @@ SMCommandInterpreter::SMCommandInterpreter( System *parent)
 	returnParamLength = SMPRET_CMD_STATUS;
 	lastReturnStatus = SMP_CMD_STATUS_ACK;
 	parentSystem=parent;
+	setIgnoreSetpointCommands(false);
 }
 
 SMCommandInterpreter::~SMCommandInterpreter()
@@ -172,6 +173,24 @@ bool SMCommandInterpreter::executeHostSideGlobalSetParamCommand(
 		case SMP_MECH_BRAKE_ENGAGE_DELAY:
 			parentSystem->setBrakeEngageDelayMs(cmd.param);
 			break;
+		case SMP_DRIVE_FLAGS:
+			parentSystem->DriveFlagBits=cmd.param;
+			break;
+		case SMP_ABS_IN_OFFSET:
+			parentSystem->setpointOffset=cmd.param;
+			break;
+		case SMP_FAULT_BEHAVIOR:
+			parentSystem->SMComm.setSMBusFaultBehavior(cmd.param);
+			break;
+		case SMP_ABSOLUTE_POS_TARGET:
+			if(ignoreSetpointCommands==false)
+				parentSystem->setSerialSetpoint(cmd.param);
+			break;
+		case SMP_INCREMENTAL_POS_TARGET:
+			if(ignoreSetpointCommands==false)
+				parentSystem->incrementSerialSetpoint(cmd.param);
+			break;
+
 		default:
 			if (setParamAddr < 200 )
 				//attempt to modify read only or unsupported param causes error status
@@ -233,6 +252,10 @@ bool SMCommandInterpreter::executeHostSideGlobalGetParamCommand(
 		case SMP_BUFFER_FREE_BYTES:
 			overrideGCreturnPacket = true;
 			retValue = parentSystem->SMComm.getSMBusBufferFreeBytes(returnParamAttribute);
+			break;
+		case SMP_FAULT_BEHAVIOR:
+			overrideGCreturnPacket = true;
+			retValue = parentSystem->SMComm.getSMBusFaultBehavior(returnParamAttribute);
 			break;
 
 		case SMP_DIGITAL_IN_VALUES_1:

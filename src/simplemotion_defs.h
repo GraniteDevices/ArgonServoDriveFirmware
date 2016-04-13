@@ -98,6 +98,21 @@
 #define SMP_RETURN_PARAM_LEN 10
 #define SMP_TIMEOUT 12
 #define SMP_CUMULATIVE_STATUS 13 //error bits are set here if any, (SMP_CMD_STATUS_... bits). clear by writing 0
+#define SMP_ADDRESS_OFFSET 14 /*used to set or offset device address along physical method, i.e. DIP SW + offset to allow greater range of addresses than switch allows. */
+/* SMP_FAULT_BEHAVIOR defines maximum amount of time between to valid received SM packets to device and other SM
+ * fault behavior that affect drive operation.
+ *
+ * If comm is broken longer than watchdog time, drive will go fault stop state.
+ * Can be used for additional safety stop when drives are controlled only onver SM bus.
+ *
+ * Parameter is bit field:
+ * bit 0 (LSB): enable device fault stop on any SM comm error (CRC, invalid value etc)
+ * bits 1-7: reserved, always 0
+ * bits 8-17: watchdog timeout value. nonzero enables watchdog. scale: 1 count=10ms, so allows 0.01-10.230 s delay.
+ * bits 18-32: reserved, always 0
+ */
+#define SMP_FAULT_BEHAVIOR 15
+	#define FAULT_BEHAVIOR_ENABLE_FAULTSTOP 1
 
 //bit mask
 #define SM_BUFCMD_STAT_IDLE 1
@@ -257,6 +272,7 @@
 	//bitfield bits:
 	#define FLAG_DISABLED_AT_STARTUP BV(0)
 	#define FLAG_NO_DCBUS_FAULT BV(1)
+    #define FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT BV(2) /*if 1, then use direction input signal for analog and PWM setpoint mode*/
 	#define FLAG_INVERT_ENCODER BV(3)
 	#define FLAG_INVERT_MOTOR_DIRECTION BV(4) /*invert positive direction*/
 	#define FLAG_DISABLE_DEADTIMECORR_LO_SPEED BV(5)
@@ -455,6 +471,14 @@
 #define SMP_TORQUE_CMD_OVERRIDE 8001
 #define SMP_OVERRIDE_COMMUTATION_FREQ 8003
 #define SMP_OVERRIDE_REGENRES_DUTY 8004
+#define SMP_DEVICE_TEMPERATURE 8007//reported in 0.01 celsius steps
+#define SMP_CURRENT_LIMITED_TO_MA 8008//actual current limit (based on user settings, device temperature, voltage etc)
+#define SMP_CURRENT_LIMIT_REASON 8009 //last reason why current was clampled
+	#define CURR_LIMIT_REASON_NONE 0
+	#define CURR_LIMIT_REASON_VOLTAGE_SATURATION 1
+	#define CURR_LIMIT_REASON_SETTINGS 2
+	#define CURR_LIMIT_REASON_I2T 3
+	#define CURR_LIMIT_REASON_DRIVE_TEMPERATURE 4
 
 /*IO side CPU sends encoder counter at index every time index is encountered. homing uses this info */
 #define SMP_INDEX_PULSE_LOCATION 8005

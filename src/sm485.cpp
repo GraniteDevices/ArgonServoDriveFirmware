@@ -33,6 +33,7 @@ SimpleMotionComm::SimpleMotionComm( Serial *port, System *parent, int nodeAddres
 	bufferedCmdStatus=SM_BUFCMD_STAT_IDLE;
 	setBusBaudRate(460800);
 	setBusMode(1);
+	setSMBusFaultBehavior(0);
 	resetReceiverState();
 	receptionBeginTime=0;
 
@@ -53,24 +54,23 @@ SimpleMotionComm::SimpleMotionComm( Serial *port, System *parent, int nodeAddres
 
     if( mutex == NULL )
     {
-    	parentSystem->setFault(FLT_SM485_ERROR|FLT_FIRMWARE|FLT_ALLOC,480101);
+    	SMfault(FLT_SM485_ERROR|FLT_FIRMWARE|FLT_ALLOC,480101);
     }
 
     bufferMutex = xSemaphoreCreateMutex();
 
     if(bufferMutex==NULL)
     {
-    	parentSystem->setFault( FLT_SM485_ERROR|FLT_FIRMWARE|FLT_ALLOC,480102);
+    	SMfault( FLT_SM485_ERROR|FLT_FIRMWARE|FLT_ALLOC,480102);
     }
     vSemaphoreCreateBinary( SimpleMotionBufferedTaskSemaphore );
 
     if(SimpleMotionBufferedTaskSemaphore==NULL)
     {
-    	parentSystem->setFault( FLT_SM485_ERROR|FLT_FIRMWARE|FLT_ALLOC,480103);
+    	SMfault( FLT_SM485_ERROR|FLT_FIRMWARE|FLT_ALLOC,480103);
     }
 
-    //xSemaphoreGive( mutex );
-
+    lastReceivedValidPacketTimestamp=parentSystem->getTimeMicrosecs();;
 }
 
 SimpleMotionComm::~SimpleMotionComm()
@@ -231,7 +231,7 @@ u32 executeCmd_w_return_CRC( u8 cmdid, u16 data )
 #endif
 
 //called periodically to feed new command from buffer to GC
-bool SimpleMotionComm::executeBufferedCmd()
+bool SimpleMotionComm::executeBufferedCmd( bool &executedSetpointCommand )
 {
 //	if(getbytesinbuf(&cmdhead,&cmdtail,CMDBUFSIZE) < 3 ) 
 //		return -1; //error, no enough data in buffer. buffer underflow. TODO aseta joku status?
@@ -265,9 +265,9 @@ void SimpleMotionComm::abortBufferedCmdExecution()
 		parentSystem->setParameter(SMP_ABSOLUTE_POS_TARGET,0, parentSystem->SM_BUFFERED_CMD_QUEUE);
 }
 
-//#define refraktorointi2
-
-void SimpleMotionComm::bufferedCmdUpdate()
+/*executes command from user cmd buffer, executedSetpointCommand is set true if commadn that was executed
+ * modifies setpoints. used to allow executing these fast with infinite frequency between setpoint cmds.*/
+void SimpleMotionComm::bufferedCmdUpdate( bool &executedSetpointCommand )
 {
 	s16 diff;
 
@@ -289,15 +289,15 @@ void SimpleMotionComm::bufferedCmdUpdate()
 
 		if (diff > 0)//its time to execute a command from buffer
 		{
-			if(executeBufferedCmd()==false)//returns false if buffer underrun
+			if(executeBufferedCmd(executedSetpointCommand)==false)//returns false if buffer underrun
 			{
 				//now executeBufferedCmd aborts buffered cmd mode in case of buffer underrun
 
 				//old way
 				//bufferedCmdStatus|=SM_BUFCMD_STAT_UNDERRUN;//doesnt stop run mode. its stopped only if diff>30k so 3 secs data break allowed and it continues automatically
 			}
-
-			cmdClock += busBufferedCmdPeriod;
+			if(executedSetpointCommand)
+				cmdClock += busBufferedCmdPeriod;//execute non setpoint commands fast
 		}
 	}
 
@@ -417,7 +417,7 @@ int SimpleMotionComm::extractSMPayloadCommandFromBuffer( RingBuffer &buffer, SMP
 	}
 	else
 	{
-		parentSystem->setFault( FLT_SM485_ERROR, 480301 );
+		SMfault( FLT_SM485_ERROR, 480301 );
 		return 0;
 	}
 }
@@ -430,7 +430,7 @@ int SimpleMotionComm::insertSMPayloadRetToBuffer( RingBuffer &buffer,
 	{
 		if (buffer.bytesFree() < 4)
 		{
-			parentSystem->setFault( FLT_SM485_ERROR, 480401 );
+			SMfault( FLT_SM485_ERROR, 480401 );
 			//tx payload buffer full
 			return 0;
 		}
@@ -448,7 +448,7 @@ int SimpleMotionComm::insertSMPayloadRetToBuffer( RingBuffer &buffer,
 	{
 		if (buffer.bytesFree() < 3)
 		{
-			parentSystem->setFault( FLT_SM485_ERROR, 480402 );
+			SMfault( FLT_SM485_ERROR, 480402 );
 			//tx payload buffer full
 			return 0;
 		}
@@ -465,7 +465,7 @@ int SimpleMotionComm::insertSMPayloadRetToBuffer( RingBuffer &buffer,
 	{
 		if (buffer.bytesFree() < 2)
 		{
-			parentSystem->setFault( FLT_SM485_ERROR, 480403 );
+			SMfault( FLT_SM485_ERROR, 480403 );
 			//tx payload buffer full
 			return 0;
 		}
@@ -481,7 +481,7 @@ int SimpleMotionComm::insertSMPayloadRetToBuffer( RingBuffer &buffer,
 	{
 		if (buffer.bytesFree() < 1)
 		{
-			parentSystem->setFault( FLT_SM485_ERROR, 480404 );
+			SMfault( FLT_SM485_ERROR, 480404 );
 			//tx payload buffer full
 			return 0;
 		}
@@ -493,7 +493,7 @@ int SimpleMotionComm::insertSMPayloadRetToBuffer( RingBuffer &buffer,
 		return 1;
 	}
 
-	parentSystem->setFault( FLT_SM485_ERROR, 480405 );
+	SMfault( FLT_SM485_ERROR, 480405 );
 	//cant reach this ever
 	return 0;
 }
@@ -551,7 +551,7 @@ void SimpleMotionComm::executeSMcmd()
 
 		if (userCmds.bytesFree() < receivedPayloadSize)
 		{
-			parentSystem->setFault( FLT_SM485_ERROR, 480501 );
+			SMfault( FLT_SM485_ERROR, 480501 );
 			makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_BUF_OVERFLOW );
 		}
 		else
@@ -616,7 +616,7 @@ void SimpleMotionComm::executeSMcmd()
 
 				if(rxPos>=PAYLOAD_BUFSIZE)//command corrupted because it has overflown payload buf size
 				{
-					parentSystem->setFault( FLT_SM485_ERROR, 48520 );
+					SMfault( FLT_SM485_ERROR, 48520 );
 					makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_BUF_OVERFLOW );
 					return;
 				}
@@ -647,7 +647,7 @@ void SimpleMotionComm::executeSMcmd()
 				txPos += bytesStored;
 				if(bytesStored==0)//buffer full
 				{
-					parentSystem->setFault( FLT_SM485_ERROR, 48526 );
+					SMfault( FLT_SM485_ERROR, 48526 );
 					makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_BUF_OVERFLOW );
 				}
 				txDone++;
@@ -679,7 +679,7 @@ void SimpleMotionComm::executeSMcmd()
 
 				if(rxPos>=PAYLOAD_BUFSIZE)//command corrupted because it has overflown payload buf size
 				{
-					parentSystem->setFault( FLT_SM485_ERROR, 48520 );
+					SMfault( FLT_SM485_ERROR, 48520 );
 					makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_BUF_OVERFLOW );
 					return;
 				}
@@ -710,7 +710,7 @@ void SimpleMotionComm::executeSMcmd()
 				txPos += bytesStored;
 				if(bytesStored==0)//buffer full
 				{
-					parentSystem->setFault( FLT_SM485_ERROR, 48526 );
+					SMfault( FLT_SM485_ERROR, 48526 );
 					makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_BUF_OVERFLOW );
 				}
 				txDone++;
@@ -740,7 +740,7 @@ void SimpleMotionComm::executeSMcmd()
 
 				if(rxPos>=PAYLOAD_BUFSIZE)//command corrupted because it has overflown payload buf size
 				{
-					parentSystem->setFault( FLT_SM485_ERROR, 480502 );
+					SMfault( FLT_SM485_ERROR, 480502 );
 					makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_BUF_OVERFLOW );
 					return;
 				}
@@ -771,7 +771,7 @@ void SimpleMotionComm::executeSMcmd()
 				txPos += bytesStored;
 				if(bytesStored==0)//buffer full
 				{
-					parentSystem->setFault( FLT_SM485_ERROR, 480503 );
+					SMfault( FLT_SM485_ERROR, 480503 );
 					makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_BUF_OVERFLOW );
 				}
 				txDone++;
@@ -805,14 +805,13 @@ void SimpleMotionComm::executeSMcmd()
 	case SMCMD_GET_CLOCK_RET: //this is interpreted by every node (sync clocks), not answered
 	{
 		u16 newclock=int(payloadIn.get()) | (int(payloadIn.get())<<8);
-		sys.setDebugParam(5,newclock );
 		setSmBusClock( newclock );
 		startProcessingBufferedCommands();
 	}
 		break;
 
 	default: //error
-		parentSystem->setFault( FLT_SM485_ERROR, 480601 );
+		SMfault( FLT_SM485_ERROR, 480601 );
 		makeReturnPacket( SMCMD_ERROR_RET, receivedCMDID, SMERR_INVALID_CMD );
 		break;
 	}
@@ -845,12 +844,32 @@ bool SimpleMotionComm::receptionTimeouted()//return true if reception time has p
 	//timeout possible only when not waiting the first byte (cmdid)
 	if(timeDiff>s32(busTimeout)*100 && receiverState!=WaitCmdId )
 	{
-		parentSystem->setFault(FLT_SM485_ERROR,480901);
+		SMfault(FLT_SM485_ERROR,481201);
 		resetReceiverState();
 		return true;
 	}
 	else
 		return false;
+}
+
+void SimpleMotionComm::watchdogUpdate()
+{
+	//set fault if watchdog enabled t>=100 and timeout happened
+	u32 timenow=parentSystem->getTimeMicrosecs();
+	u32 diff=timenow-lastReceivedValidPacketTimestamp;//rollover safe
+	u32 watchDogTimeout=(faultBehavior>>8)&1023;//in 10ms steps
+
+	if(watchDogTimeout!=0  && diff>(watchDogTimeout*10000))
+	{
+		SMfault(FLT_SM485_ERROR,481001);
+		NOP;
+	}
+}
+
+//reset watchdog timer if command received OK
+void SimpleMotionComm::watchdogReset()
+{
+	lastReceivedValidPacketTimestamp=parentSystem->getTimeMicrosecs();
 }
 
 //can be called at any frequency
@@ -861,6 +880,7 @@ u8 SimpleMotionComm::poll()
 
 	//check for timeout & handle it
 	receptionTimeouted();
+	watchdogUpdate();
 
 	//read byte from uart
 	data = comm->getByte( empty );
@@ -898,7 +918,7 @@ u8 SimpleMotionComm::poll()
 			if( payloadIn.put(data) ==false )//if full
 //		else
 		{
-				parentSystem->setFault( FLT_SM485_ERROR, 480701 );
+				SMfault( FLT_SM485_ERROR, 480701 );
 			if (receivedAddress == myAddress)
 			{
 				makeReturnPacket( SMCMD_ERROR_RET, 0, SMERR_PAYLOAD_SIZE ); //if this device, report buffer overflow
@@ -935,7 +955,7 @@ u8 SimpleMotionComm::poll()
 			receiverNextState = WaitPayloadSize;
 			break; //-1 = N databytes
 		default:
-			parentSystem->setFault( FLT_SM485_ERROR, 480801 );
+			SMfault( FLT_SM485_ERROR, 480801 );
 			resetReceiverState();
 			//can't answer because all clients would answer same time makeReturnPacket2B(SMCMD_ERROR_RET,0,SMERR_INVALID_CMD);
 			break; //error, unsupported command id
@@ -978,7 +998,7 @@ u8 SimpleMotionComm::poll()
 		{
 			//CRC error, no reply because all clients may answer simultaneously
 			//makeReturnPacket2B(SMCMD_ERROR_RET,0,SMERR_CRC);
-			parentSystem->setFault( FLT_SM485_ERROR, 480901 );
+			SMfault( FLT_SM485_ERROR, 480901 );
 			resetReceiverState();
 		}
 		else
@@ -986,7 +1006,11 @@ u8 SimpleMotionComm::poll()
 			//CRC ok
 			if (receivedAddress
 					== myAddress || receivedAddress==SM_BROADCAST_ADDR || receivedCMDID==SMCMD_GET_CLOCK_RET || receivedCMDID==SMCMD_PROCESS_IMAGE)
+			{
 				executeSMcmd();
+				watchdogReset();
+			}
+
 		}
 
 		//re-init all statics to receive next smcmd
@@ -997,7 +1021,15 @@ u8 SimpleMotionComm::poll()
 	return 1;
 }
 
-/*
+//sets fault and causes device fault stop if fault behavior is set accordingly
+void SimpleMotionComm::SMfault(u32 faultbits, u32 faultLocation)
+{
+	parentSystem->setFault(faultbits,faultLocation);
+	//if(faultBehavior&1)
+//		parentSys->setStatus(STAT_FAULTSTOP);//cant write it
+}
+
+
 void SimpleMotionComm::loopBackComm()
 {
 	 //loopback test
@@ -1010,7 +1042,7 @@ void SimpleMotionComm::loopBackComm()
 		 comm->sendBuffer();
 	 }
 }
-*/
+
 
 
 
@@ -1164,7 +1196,7 @@ s16 SimpleMotionComm::getSMBusVersion(u16 attribute) const
 	else if(attribute&SMP_MAX_VALUE_MASK)
 		return 1;
 	else
-		return 20;
+		return SM_VERSION;
 }
 
 s16 SimpleMotionComm::getSMBusCompatVersion(u16 attribute) const
@@ -1174,12 +1206,21 @@ s16 SimpleMotionComm::getSMBusCompatVersion(u16 attribute) const
 	else if(attribute&SMP_MAX_VALUE_MASK)
 		return 1;
 	else
-		return 19;
+		return SM_VERSION_COMPAT;
 }
 
+u32 SimpleMotionComm::getSMBusFaultBehavior( u16 attribute ) const
+{
+	if(attribute&SMP_MIN_VALUE_MASK) //when returning min=2 max=1, it means parameter is read-only
+		return 0;
+	else if(attribute&SMP_MAX_VALUE_MASK)
+		return ((1023<<8)|1);//max timout sets the max +1 enable bit //max timout sets the max +1 enable bit //according to spec, bits 18-32 are alwas zero in current SM vesrion
+	else
+		return faultBehavior;
+}
 
-
-
-
-
-
+bool SimpleMotionComm::setSMBusFaultBehavior( u32 behabiorbits )
+{
+	faultBehavior=behabiorbits;
+	return true;
+}

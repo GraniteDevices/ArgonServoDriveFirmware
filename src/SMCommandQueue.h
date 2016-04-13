@@ -58,6 +58,12 @@ public:
 	void lockMutex();
 	void unlockMutex();
 
+	//set ingoring true on high prio stream 1 where other stream setpoints are forwarded. note GC will ignore all setpoints from other streams except from the one where this is set true.
+    void setIgnoreSetpointCommands(bool on)
+    {
+    	localInterpreter.setIgnoreSetpointCommands(on);
+    }
+
 private:
 	u16 currentParamID;
 	xQueueHandle cmdQueue, retQueue;

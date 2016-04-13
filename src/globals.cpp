@@ -16,6 +16,7 @@ xTaskHandle SystemInitTaskHandle;
 xTaskHandle SystemPeriodicTaskHandle;
 xTaskHandle UpdateGPIOandBrakeTaskHandle;
 xTaskHandle SlowTaskHandle;
+xTaskHandle EncoderOutTaskHandle;
 
 
 //syncing mutex from GC RX complete interrupt to MC communication task:

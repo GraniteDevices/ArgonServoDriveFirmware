@@ -25,6 +25,8 @@ PhysicalIO::PhysicalIO( System *parentSys ):
 	mechBrakeRelease(DigitalOutPin::MechBrakeRelease),
 	doutDebug1(DigitalOutPin::Debug1),
 	doutDebug2(DigitalOutPin::Debug2),
+	doutDebug3(DigitalOutPin::Debug3),
+	doutDebug4(DigitalOutPin::Debug4),
 
 	digitalInputs(0),
 	digitalOutputs(0),

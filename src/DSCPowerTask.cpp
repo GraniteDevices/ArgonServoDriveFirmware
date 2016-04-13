@@ -32,14 +32,14 @@ void GCPSUInitHW()
 	/* Enable GPIO clock */
 	RCC_AHB1PeriphClockCmd( RCC_AHB1Periph_GPIOB, ENABLE );
 
-	/* Enable TIM1 clock */
-	RCC_APB2PeriphClockCmd( RCC_APB2Periph_TIM1, ENABLE );
+	/* Enable TIM8 clock */
+	RCC_APB2PeriphClockCmd( RCC_APB2Periph_TIM8, ENABLE );
 
 	/* get CPU freq*/
 	RCC_ClocksTypeDef RCC_Clocks;
 	RCC_GetClocksFreq( &RCC_Clocks );
 
-	/* Configure TIM1_CH2N (PB14) as alternate function push-pull */
+	/* Configure TIM8_CH2N (PB14) as alternate function push-pull */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
@@ -48,7 +48,7 @@ void GCPSUInitHW()
 	GPIO_Init( GPIOB, &GPIO_InitStructure );
 
 	/* Connect TIM pins to AF1 */
-	GPIO_PinAFConfig( GPIOB, GPIO_PinSource14, GPIO_AF_TIM1 );
+	GPIO_PinAFConfig( GPIOB, GPIO_PinSource14, GPIO_AF_TIM8 );
 
 	/* Init PMW timer */
 	TIM_TimeBaseStructInit( &TIM_TimeBaseStructure );
@@ -57,10 +57,10 @@ void GCPSUInitHW()
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 1; //reload freq
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit( TIM1, &TIM_TimeBaseStructure );
+	TIM_TimeBaseInit( TIM8, &TIM_TimeBaseStructure );
 	TimerPeriod=TIM_TimeBaseStructure.TIM_Period;
 
-	/* TIM1 channel2 configuration in PWM mode */
+	/* TIM8 channel2 configuration in PWM mode */
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Disable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
@@ -69,7 +69,7 @@ void GCPSUInitHW()
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCIdleState_Reset;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset;
-	TIM_OC2Init( TIM1, &TIM_OCInitStructure );
+	TIM_OC2Init( TIM8, &TIM_OCInitStructure );
 
 	/* Automatic Output enable, Break, dead time and lock configuration*/
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
@@ -79,17 +79,17 @@ void GCPSUInitHW()
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Enable;
-	TIM_BDTRConfig( TIM1, &TIM_BDTRInitStructure );
+	TIM_BDTRConfig( TIM8, &TIM_BDTRInitStructure );
 
 	//for ADC sync
-	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Update);//center align
-	//TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_OC1);//center align
+	TIM_SelectOutputTrigger(TIM8, TIM_TRGOSource_Update);//center align
+	//TIM_SelectOutputTrigger(TIM8, TIM_TRGOSource_OC1);//center align
 
-	/* TIM1 counter enable */
-	TIM_Cmd( TIM1, ENABLE );
+	/* TIM8 counter enable */
+	TIM_Cmd( TIM8, ENABLE );
 
 	/* Main Output Enable */
-	TIM_CtrlPWMOutputs( TIM1, ENABLE );
+	TIM_CtrlPWMOutputs( TIM8, ENABLE );
 
 }
 
@@ -100,7 +100,7 @@ void GCPSUSetState(bool enabled)
 		newstate=PSU_ON;
 	else
 	{
-		TIM_SetCompare2( TIM1, 0 );
+		TIM_SetCompare2( TIM8, 0 );
 		newstate=PSU_OFF;
 	}
 
@@ -137,12 +137,12 @@ void GCPSUTask( void *pvParameters )
 						//delay about 2ms
 						vTaskDelayUntil( &xLastWakeTime, configTICK_RATE_HZ/500 );
 						//vTaskDelayUntil( &xLastWakeTime, 5 );
-						TIM_SetCompare2( TIM1, TimerPeriod * i / 400 );
+						TIM_SetCompare2( TIM8, TimerPeriod * i / 400 );
 					}
 				}
 /*				else if(newstate==PSU_OFF)
 				{
-					TIM_SetCompare2( TIM1, 0 );//moved to DSCPSUSetSate for instant execution
+					TIM_SetCompare2( TIM8, 0 );//moved to DSCPSUSetSate for instant execution
 				}*/
 
 				currentstate=newstate;

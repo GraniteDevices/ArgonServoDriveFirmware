@@ -31,8 +31,25 @@
 #define PULSETRAIN_DIR_EXTI_IRQ EXTI1_IRQn
 
 
-//in timer cycles @ 60MHz. 100k=600Hz
+//TIM2 runs at 60MHz clock (ABP bus clock x2)
+//following value sets minimum freq for valid PWM input in timer cycles @ 60MHz. 100k=600Hz min
 #define MAX_PWM_PERIOD_TIME 100000
+//PWM in 2 uses TIM1 with 16 bit counters, so can't use that high value. 24000=2.5kHz minimum pwm freq
+#define MAX_PWM2_PERIOD_TIME 24000
+
+class PWMInputComputing
+{
+public:
+	PWMInputComputing(u32 maxPulselength);
+	//if bipolarOutput=true then output will be -16384..16384 from 0-100% duty cycle,
+	//if false, then output is 0..16384 from 0-100% duty
+	s32 computePWMInput( u32 period, u32 pulselength, u32 timerCounter, bool bipolarOutput );
+
+	bool noPWMsignal;
+private:
+	u32 maxCounterValue;//for loss of pwm signal detection
+	u32 prevPulselength, prevPeriod;
+};
 
 
 class DigitalCounterInput
@@ -46,12 +63,34 @@ public:
 	//set counting direction of pulse input. called from direction pin changed ISR
 	void setCountingDirection(bool up);
 	void setCountMode( CountMode mode );
-	s32 getCounter();
+	//read counter value (step/dir, quadrature, pwm) sourceNr defines which phyiscal input to sample.
+	//default 0 but pwm has two inputs so it can be 0 or 1
+	s32 getCounter( int sourceNr=0, bool bipolarPWMoutput=true );
 	void setCounter(s32 newvalue);
 
+	bool isInvalidPWMSignal(int sourceNr=0)
+	{
+		switch(sourceNr)
+		{
+		case 0:
+			return PWMIn1.noPWMsignal;
+			break;
+		case 1:
+			return PWMIn2.noPWMsignal;
+			break;
+		default: return false;
+		}
+
+	}
 
 private:
 	CountMode countMode;
+
+	bool noPWM1signal,noPWM2signal;
+
+	PWMInputComputing PWMIn1, PWMIn2;
+
 };
+
 
 #endif /* DIGITALCOUNTERINPUT_H_ */

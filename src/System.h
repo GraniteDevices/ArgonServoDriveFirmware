@@ -40,7 +40,22 @@
  *      -sending clear faults cmd now clears also fault location 2 register
  *      -initial resolver support ready
  * 1010 -fix pulse&dir problem with noisy direction signal causing errorenous direction states
- * 1011 -reduce sensitivity to resolver undervotlage error
+ * 1011(WIP, merged development & master branch):
+ *      -implement second PWM setpoint input, uses analog input pins, see digitalcounterinput.cpp for usage
+ * 		-change dscpowertask to use TIM8 instead of TIM1 (TODO: verify by measuring)
+ *      -makefile now calls mkfirmware utily to generate .gdf file
+ * 1090 -ported IONI features: new setpoint calculation (Ioni style simplified setpoint handling: drive setpoint is a sum of phyiscal setpoint (step/dir, pwm, analog etc) and the setpoint from SM host (instant and buffered commands). If SM host sets absolute setpoint, then phyiscal counter (incremental types onle) are reset to zero.)
+ * 		-support PWM+dir and Analog+dir setpoints with on/off option in Granity
+ * 		-Increase ADC sampling time (in hope that it reduces ADC channel crosstalk)
+ * 		-requires GraniteCore FW version 1090 or later
+ * 		-reduce fault sensitivity of resolver input
+ * 		-added simulated encoder output feature
+ * 1095 -changed communication protocol between GraniteCore chip and I/O side chip (GC-IO protocol):
+ *       1) Now instead of sending/receiving two simultaneous streams of SimpleMotion subpackets (SMPs),
+ *       we send only one and hard coded 32 bit setpoint value. Originally stream1 was used
+ *       to send setpoints. Also return data stream of sream1 is removed
+ *       2) Added clearController bit to GC-IO protocol. When GC returns value 1 on it, IO side resets setpoint to zero.
+ *       Note: this breaks compatibility with older GC side firmwares, to use new this version, GC FW version 1095+ or racing simulator version 9195+ is required
  */
 
 /*
@@ -48,8 +63,8 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 1011
-#define FW_BACKWARDS_COMPATITBLE_VERSION 1000
+#define FW_VERSION 2000
+#define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
 #define COMMAND_QUEUE2_SIZE 256
@@ -87,7 +102,6 @@
 #define SM_BUFFERED_CMD_QUEUE GCCmdStream2_HighPriority
 #define SM_INSTANT_CMD_QUEUE GCCmdStream2_LowPriority
 #define SYS_CMD_QUEUE GCCmdStream2_LowPriority
-#define INPUT_REFERENCE_QUEUE GCCmdStream1_HighPriority
 
 #define STAT_TARGET_REACHED BV(1)
 #define STAT_FERROR_RECOVERY BV(2)
@@ -225,9 +239,6 @@ public:
 	 * shared between 3 "users" with different priorities. highes priority
 	 * queue will be served first. stream 1 and 2 operate simultaneously. */
 
-	//max update rate stream for torq/vel/pos reference data
-	SMCommandQueue GCCmdStream1_HighPriority;
-
 
 	//for instant commands from SM485 bus
 	SMCommandQueue GCCmdStream2_LowPriority;
@@ -278,9 +289,20 @@ public:
 	u32 getStatusBitsReg() const;
 	u32 getFirstFaultBitsReg() const;
 
+	//these should be called only by MCcomm task once per 400us cycle, use getLastPositionFeedbackValue() from elsewhere
 	s16 getVelocityFeedbackValue();
 	u16 getPositionFeedbackValue();
 
+	u16 getLastPositionFeedbackValue(){ return lastPositionFBValue; }
+	//for emulated encoder output. outputs true one time after feedback device index has been passed
+	//flaw: this method is inaccurate if speed is above 2500 counts/s
+	bool simulatedIndexPulseOutNow()
+	{
+		bool ret=indexHasOccurred;
+		indexHasOccurred=false;
+		return ret;
+	}
+	
 
 	//this method has very high priority and is called from isr at 40kHz
 	void highFrequencyISRTask();
@@ -351,6 +373,35 @@ public:
 	{
 		return brakePoweronReleaseDelayMs;
 	}
+	
+
+	FeedbackDevice getCurrentPositionFeedbackDevice()
+	{
+		return positionFeedbackDevice;
+	}
+
+	bool indexHasOccurred;
+
+	//return true if flag bit is on (drive config param flags). See FLAG_DISABLED_AT_STARTUP etc defines
+	bool isFlagBit(u32 bit)
+	{
+		return DriveFlagBits&bit;
+	}
+
+	void setSerialSetpoint(s32 setp)
+	{
+		serialSetpoint=setp;
+		resetPhyiscalSetpoint();
+	}
+	void incrementSerialSetpoint(s32 setp)
+	{
+		serialSetpoint+=setp;
+	}
+
+	void resetPhyiscalSetpoint()
+	{
+		digitalCounterInput.setCounter(0);
+	}
 
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc
@@ -364,8 +415,13 @@ private:
 	//code elsewhere polls bits in this register and act if 1.
 	//see enum Signal
 	u32 SignalReg;
+	u32 DriveFlagBits;
+	s32 setpointOffset;
 
 	s32 debugParams[3];
+
+	//last setpoint value from SM host
+	s32 serialSetpoint;
 
 	ControlMode presentControlMode;
 	FeedbackDevice positionFeedbackDevice,velocityFeedbackDevice;
@@ -391,6 +447,8 @@ private:
 
     int brakePoweronReleaseDelayMs;
     int brakeEngageDelayMs;
+	
+	u16 lastPositionFBValue;
 };
 
 #endif /* SYSTEM_H_ */

@@ -28,6 +28,7 @@ extern xTaskHandle SystemInitTaskHandle;
 extern xTaskHandle SystemPeriodicTaskHandle;
 extern xTaskHandle UpdateGPIOandBrakeTaskHandle;
 extern xTaskHandle SlowTaskHandle;
+extern xTaskHandle EncoderOutTaskHandle;
 
 //freeRTOS semaphore handles
 extern xSemaphoreHandle MCCommTaskSemaphore;
