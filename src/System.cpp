@@ -375,7 +375,8 @@ s16 System::getVelocityFeedbackValue()
 	switch(velocityFeedbackDevice)
 	{
 	case Encoder:
-		uncompensatedVel=encoder.getVelocity();
+		//uncompensatedVel=encoder.getVelocity();
+		uncompensatedVel=velocityFB;
 		break;
 	case Resolver:
 		uncompensatedVel=resolver.getVelocity();
@@ -407,10 +408,16 @@ s16 System::getVelocityFeedbackValue()
 
 u16 System::getPositionFeedbackValue()
 {
+	u16 newPosFB;
 	switch(velocityFeedbackDevice)
 	{
 	case Encoder:
-		lastPositionFBValue=encoder.getCounter();
+		newPosFB=physIO.getAnalogInput2();
+
+		velocityFB=s32(s16(newPosFB-lastPositionFBValue));
+
+		lastPositionFBValue=newPosFB;
+		//lastPositionFBValue=encoder.getCounter();
 		break;
 	case Resolver:
 		lastPositionFBValue=resolver.getAngle();

@@ -63,7 +63,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 2000
+#define FW_VERSION 2300
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -449,6 +449,8 @@ private:
     int brakeEngageDelayMs;
 	
 	u16 lastPositionFBValue;
+
+	int velocityFB;
 };
 
 #endif /* SYSTEM_H_ */
