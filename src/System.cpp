@@ -75,6 +75,10 @@ System::System() :
     	setFault( FLT_FIRMWARE|FLT_ALLOC,FAULTLOCATION_BASE+01);
     }
 
+    slewRate=0.5/3;//0.5oli 3x liian nopee mitä liikkuu 100% dutyllä
+    slewrateLimitedSetpoint=0;
+    setpointInitialized=false;
+	setInputReferenceMode(Analog);
 }
 
 System::~System()
@@ -351,6 +355,21 @@ s32 System::getInputReferenceValue()
 		{
 			setpoint=physIO.getAnalogInput1()+setpointOffset;
 		}
+
+		if(setpointInitialized==false)
+		{
+			slewrateLimitedSetpoint=physIO.getAnalogInput2();
+			setpointInitialized=true;
+		}
+		if(setpoint>slewrateLimitedSetpoint+slewRate)
+			slewrateLimitedSetpoint+=slewRate;
+		else if(setpoint<slewrateLimitedSetpoint-slewRate)
+			slewrateLimitedSetpoint-=slewRate;
+		else
+			slewrateLimitedSetpoint=setpoint;
+
+		setpoint=slewrateLimitedSetpoint;
+		//setpoint=physIO.getAnalogInput2();
 		break;
 	case Reserved1:
 		setpoint=0;
@@ -414,7 +433,7 @@ u16 System::getPositionFeedbackValue()
 	case Encoder:
 		newPosFB=physIO.getAnalogInput2();
 
-		velocityFB=s32(s16(newPosFB-lastPositionFBValue));
+		velocityFB=s16(u16(newPosFB-lastPositionFBValue));
 
 		lastPositionFBValue=newPosFB;
 		//lastPositionFBValue=encoder.getCounter();

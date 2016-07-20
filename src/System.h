@@ -450,7 +450,11 @@ private:
 	
 	u16 lastPositionFBValue;
 
-	int velocityFB;
+	s16 velocityFB;
+
+	bool setpointInitialized;
+	float slewrateLimitedSetpoint;
+	float slewRate;
 };
 
 #endif /* SYSTEM_H_ */
