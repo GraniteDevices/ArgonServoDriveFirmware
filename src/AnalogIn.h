@@ -40,6 +40,7 @@ public:
 
 	//for analyzing/debugging adc noise
 	void collectNoiseStatistics();
+	int median3(int a, int b, int c);
 
 private:
 	//volatile u16 ADCsamples[ADC_CHANS*ADC_OVERSAMPLING];

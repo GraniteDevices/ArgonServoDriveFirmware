@@ -265,6 +265,7 @@ void System::setInputReferenceMode( InputReferenceMode mode )
 		break;
 	case Analog:
 		digitalCounterInput.setCountMode( DigitalCounterInput::None );
+		digitalCounterInput.setCountMode( DigitalCounterInput::PWM );
 		break;
 	case Reserved1:
 		digitalCounterInput.setCountMode( DigitalCounterInput::None );
@@ -355,6 +356,16 @@ s32 System::getInputReferenceValue()
 		{
 			setpoint=physIO.getAnalogInput1()+setpointOffset;
 		}
+
+
+		{
+		//slew rate from 10khz pwm input
+		const float maxSlewRate=0.5/3.0;
+		//int PWMduty=float(digitalCounterInput.getCounter(0,false))/16.3840;//0-1000
+		slewRate=float(digitalCounterInput.getCounter(0,false))/16384.0*maxSlewRate +0.5/60.0;
+		setDebugParam(4,slewRate*2500.0);//counts/sec. range 20-433 in 0-99% duty
+		}
+
 
 		if(setpointInitialized==false)
 		{

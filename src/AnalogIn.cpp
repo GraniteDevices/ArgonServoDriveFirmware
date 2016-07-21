@@ -271,11 +271,43 @@ void AnalogIn::startSampling()
 	ADC_SoftwareStartConv( ADC1 );
 }
 
+int AnalogIn::median3(int a, int b, int c)
+{
+	/*
+http://stackoverflow.com/questions/12937732/number-of-comparisons-made-in-median-of-3-function
+
+The first exclusive or (e^f) is to find out the difference of the sign bit between (a-b) and (a-c).
+If they have different sign bit, then a is the median. Otherwise, a is either the minimum or the maximum. In that case, we need the second exclusive or (e^g).
+
+Again, we are going to find out the difference of the sign bit between (a-b) and (b-c). If they have different sign bit, one case is that a > b && b < c. In this case, we also get a > c because a is the maximum in this case. So we have a > c > b. The other case is a < b && b > c && a < c. So we have a < c < b; In both cases, c is the median.
+
+If (a-b) and (b-c) have the same sign bit, then b is the median using similar arguments as above. Experiments shows that a random input will need 1.667 comparisons to find out the median and one extra comparison to get the order.
+	 */
+
+    int e = a-b;
+    int f = a-c;
+
+    if ((e^f) < 0) {
+        /* a is the median with 1 comparison */
+        return a;
+    } else {
+        int g = b-c;
+        if ((e^g) < 0) {
+            /* c is the median with 2 comparisons */
+            return c;
+        } else {
+            /* b is the median with 2 comparisons */
+            return b;
+        }
+    }
+}
+
 //optimization mandotary to be able to run at 40kHz and 8 sample averaging
 //at O0 it otherwise takes 50% of cpu time
 //with O3 reduced to ̃~10%
 void OPTIMIZE_FUNCTION AnalogIn::storeSamples()
 {
+	static u16 a=0,b=0,c=0;
 	int i, sum, channel;
 
 	//calculate average of samples in DMA buffer and store averages in ADCsamples
@@ -284,7 +316,17 @@ void OPTIMIZE_FUNCTION AnalogIn::storeSamples()
 		sum=0;
 		for(i=0;i<ADC_OVERSAMPLING;i++)
 			sum+=ADCDMASampleBuffer[channel+i*ADC_CHANS];
-		ADCsamples[channel]=8*sum/ADC_OVERSAMPLING; //sampes are now 0-32767 instead of 0-4095
+
+		if(channel==AnaIn2)//for pos feedback
+		{
+			a=b;
+			b=c;
+			c=8*sum/ADC_OVERSAMPLING;
+			ADCsamples[channel]=median3(a,b,c);
+		}
+		else
+			ADCsamples[channel]=8*sum/ADC_OVERSAMPLING; //sampes are now 0-32767 instead of 0-4095
+
 
 		//no avg:
 		//i=0;ADCsamples[channel]=8*ADCDMASampleBuffer[channel+i*ADC_CHANS];
