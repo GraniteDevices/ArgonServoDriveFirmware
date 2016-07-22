@@ -17,7 +17,7 @@
 #include "stm32f2xx_tim.h"
 
 #define ADC_CCR_ADDRESS    ((uint32_t)0x40012308)
-
+#include "globals.h"
 #include <stdlib.h>
 
 
@@ -188,6 +188,10 @@ AnalogIn::AnalogIn()
 
 	//now must start conversion once or frequently depending on continuous conv mode
 	startSampling();
+
+	//init LPF filters
+	ain1lpf.setBiquad(Biquad::bq_type_lowpass_1st_order,5.0/2500.0,0.5,0);
+	ain2lpf.setBiquad(Biquad::bq_type_lowpass_1st_order,5.0/2500.0,0.5,0);
 }
 
 AnalogIn::~AnalogIn()
@@ -317,19 +321,24 @@ void OPTIMIZE_FUNCTION AnalogIn::storeSamples()
 		for(i=0;i<ADC_OVERSAMPLING;i++)
 			sum+=ADCDMASampleBuffer[channel+i*ADC_CHANS];
 
-		if(channel==AnaIn2)//for pos feedback
+		if(channel==AnaIn2)//for pos feedback, do extra filtering for it as it's noisy (feedback pot)
 		{
 			a=b;
 			b=c;
 			c=8*sum/ADC_OVERSAMPLING;
-			ADCsamples[channel]=median3(a,b,c);
+			ain2lpf.process( median3(a,b,c) );
+			int yy=median3(a,b,c);
+			int xx=ain2lpf.process( yy );
+			ADCsamples[channel]=(u16)xx;
+			sys.setDebugParam(5,yy);
+			sys.setDebugParam(6,xx);
 		}
-		else
+		else if(channel==AnaIn1)//do extra LPF for anain1 too (setpoint potentiometer)
+		{
+			ADCsamples[channel]=ain1lpf.process(8*sum/ADC_OVERSAMPLING); //sampes are now 0-32767 instead of 0-4095
+		}
+		else//other chans no extra filtering needed
 			ADCsamples[channel]=8*sum/ADC_OVERSAMPLING; //sampes are now 0-32767 instead of 0-4095
-
-
-		//no avg:
-		//i=0;ADCsamples[channel]=8*ADCDMASampleBuffer[channel+i*ADC_CHANS];
 	}
 }
 

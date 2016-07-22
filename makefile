@@ -68,7 +68,7 @@ DINCDIR =
 DLIBDIR =
 
 # List all default libraries here
-DLIBS = -lstdc++
+DLIBS = -lstdc++ -lm
 #DLIBS =
 
 #
@@ -176,6 +176,7 @@ CPPSRC =  ./src/AnalogIn.cpp \
  ./src/LedBlinkTask.cpp \
  ./src/ResolverIn.cpp \
  ./src/System.cpp \
+ ./src/Biquad.cpp \
  ./src/ProductionTester.cpp
  
 

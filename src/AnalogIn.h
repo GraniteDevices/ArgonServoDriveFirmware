@@ -18,6 +18,7 @@
 //however about some typical offset is present in practical HW and it's compensated here
 #define ADC_OFFSET_VALUE_ENC (16384+650)
 #define ADC_OFFSET_VALUE_ANAIN (16384+47)
+#include "Biquad.h"
 
 class AnalogIn {
 public:
@@ -46,6 +47,8 @@ private:
 	//volatile u16 ADCsamples[ADC_CHANS*ADC_OVERSAMPLING];
 	u16 *ADCDMASampleBuffer;//DMA buffer
 	u16 ADCsamples[ADC_CHANS];
+
+	Biquad ain1lpf, ain2lpf;
 
 };
 

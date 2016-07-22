@@ -358,29 +358,34 @@ s32 System::getInputReferenceValue()
 		}
 
 
+		//calculate slew rate from 10khz pwm input
 		{
-		//slew rate from 10khz pwm input
-		const float maxSlewRate=0.5/3.0;
-		//int PWMduty=float(digitalCounterInput.getCounter(0,false))/16.3840;//0-1000
-		slewRate=float(digitalCounterInput.getCounter(0,false))/16384.0*maxSlewRate +0.5/60.0;
-		setDebugParam(4,slewRate*2500.0);//counts/sec. range 20-433 in 0-99% duty
+
+			const float maxSlewRate=0.5/3.0;
+			slewRate=float(digitalCounterInput.getCounter(0,false))/16384.0*maxSlewRate +0.72/60.0;
+			setDebugParam(4,slewRate*2500.0);//counts/sec. range 30-446 in 0-100% duty
 		}
 
-
-		if(setpointInitialized==false)
+		//calculate set point from anain1 with slew rate limit
 		{
-			slewrateLimitedSetpoint=physIO.getAnalogInput2();
-			setpointInitialized=true;
-		}
-		if(setpoint>slewrateLimitedSetpoint+slewRate)
-			slewrateLimitedSetpoint+=slewRate;
-		else if(setpoint<slewrateLimitedSetpoint-slewRate)
-			slewrateLimitedSetpoint-=slewRate;
-		else
-			slewrateLimitedSetpoint=setpoint;
+			static int setpointinitdelay=0;
 
-		setpoint=slewrateLimitedSetpoint;
-		//setpoint=physIO.getAnalogInput2();
+			if(setpointinitdelay<2500)//keep setpoint=feedback for 1sec so anain LPF stabilizes, at this period drive should not do nothing as follow error is zero
+			{
+				setpointinitdelay++;
+				slewrateLimitedSetpoint=physIO.getAnalogInput2();
+			}
+
+			//limit slew rate of setpoint
+			if(setpoint>slewrateLimitedSetpoint+slewRate)
+				slewrateLimitedSetpoint+=slewRate;
+			else if(setpoint<slewrateLimitedSetpoint-slewRate)
+				slewrateLimitedSetpoint-=slewRate;
+			else
+				slewrateLimitedSetpoint=setpoint;
+
+			setpoint=slewrateLimitedSetpoint;
+		}
 		break;
 	case Reserved1:
 		setpoint=0;

@@ -371,8 +371,13 @@ s32 PWMInputComputing::computePWMInput( u32 period, u32 pulselength, u32 timerCo
 		return DutyCycle;
 	}
 	else
+	{
+		if(sys.physIO.dinHSIN2.inputState())//100% duty
+			return 16383;
+
 		//cant div by zero, probably no input edges present
 		return 0;
+	}
 }
 
 
