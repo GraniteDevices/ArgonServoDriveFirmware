@@ -19,6 +19,7 @@
 #include "stm32f2xx_rcc.h"
 #include "misc.h"//==NVIC
 #include "utils.h"
+#include "math.h"
 
 #define FAULTLOCATION_BASE 100000
 
@@ -269,6 +270,7 @@ void System::setInputReferenceMode( InputReferenceMode mode )
 		break;
 	case Reserved1:
 		digitalCounterInput.setCountMode( DigitalCounterInput::None );
+		digitalCounterInput.setCountMode( DigitalCounterInput::PWM );
 		break;
 	case Reserved2:
 		digitalCounterInput.setCountMode( DigitalCounterInput::None );
@@ -299,6 +301,92 @@ u32 System::getFirstFaultBitsReg() const
 u32 System::getStatusBitsReg() const
 {
 	return StatusBitsReg;
+}
+
+//return value from -16384 to 16384
+//this code is called at 2500Hz
+s32 System::calcMotorOutputVotlage()
+{
+	//read potentiometers
+	float setpoint=float(physIO.getAnalogInput1())/1638.40;
+	float feedback=float(physIO.getAnalogInput2())/1638.40;
+
+	float voltageRiseRamp=0.8/2500.0;//note this code is called at 2500Hz
+	float voltageFallRamp=4/2500.0;
+	float stoppingDeadband=0.10;//volts, tolerance where it will stop
+	float startingDeadband=0.20;//volts, tolerance after it will start again
+	static float currentDeadband=0.2;
+
+	static float outputVoltage=0;//scale -1 to 1 is -100% duty cycle to +100% on motor
+	bool inDeadband;
+	static int motionDirection=0;//-1, 0, or 1
+
+	//state machine
+	inDeadband=fabsf(setpoint-feedback)<currentDeadband;
+
+	if(inDeadband)//decelerate motor
+	{
+		if(outputVoltage>0)
+		{
+			outputVoltage-=voltageFallRamp;
+			if(outputVoltage<0)
+				outputVoltage=0;
+		}
+		else if(outputVoltage<0)
+		{
+			outputVoltage+=voltageFallRamp;
+			if(outputVoltage>0)
+				outputVoltage=0;
+		}
+
+		currentDeadband=startingDeadband;
+	}
+	else//accelerate towards setpoint
+	{
+		if(setpoint>feedback)
+		{
+			outputVoltage+=voltageRiseRamp;
+			motionDirection=1;
+		}
+		else if(setpoint<feedback)
+		{
+			outputVoltage-=voltageRiseRamp;
+			motionDirection-=1;
+		}
+
+		currentDeadband=stoppingDeadband;
+	}
+
+
+	//calculate max voltage from 10khz pwm input (slew rate)
+	float newSlewRate=(float(digitalCounterInput.getCounter(0,false))/16384.0) * 0.9 + 0.1;// returns from 0.1 to 1.0
+
+	//limit rate of slew rate change
+	if(newSlewRate>slewRate)
+		slewRate+=0.5/2500.0;
+	else if(newSlewRate<slewRate)
+		slewRate-=0.5/2500.0;
+
+	setDebugParam(4,slewRate*100.0); //displays 5-100% in granity debug param 4
+	setDebugParam(5,stoppingDeadband);
+	//setDebugParam(4,setpoint*1000.0);
+	//setDebugParam(5,feedback*1000.0);
+	//setDebugParam(6,outputVoltage*1000.0);
+
+	//limit output votlage
+	if(outputVoltage>slewRate)
+		outputVoltage=slewRate;
+	else if(outputVoltage<-slewRate)
+		outputVoltage=-slewRate;
+
+	setDebugParam(6,outputVoltage*1000.0);//set output voltage to debug param 6, range -1000 to 1000 is -100% to 100% voltage
+
+	if(servoReady==false)//in fault or not initialized
+	{
+		outputVoltage=0;
+	}
+
+	return outputVoltage*16383;
 }
 
 s32 System::getInputReferenceValue()
@@ -337,7 +425,7 @@ s32 System::getInputReferenceValue()
 				setpoint+=setpointOffset;
 		}
 		break;
-	case Analog:
+	case Analog://NOTE: when selecting AnalogIn mode, drive uses the earlier mode (servo mode with potentiometer feedback). Latest mode uses Reserved mode 1 below, so don't use [CRI]=Analog, it is preserved here just in case.
 		if( isFlagBit(FLAG_ENABLE_DIR_INPUT_ON_ABS_SETPOINT))//DIR input active
 		{
 			if(physIO.getAnalogInput2()>4915)//inverted analog1 if anain2>3.0V
@@ -387,8 +475,8 @@ s32 System::getInputReferenceValue()
 			setpoint=slewrateLimitedSetpoint;
 		}
 		break;
-	case Reserved1:
-		setpoint=0;
+	case Reserved1://the new code uses torque mode and Reserved1 mode to control motor voltage based on difference of potentiometer positions (on/off control with DC driving of motor)
+		setpoint=calcMotorOutputVotlage();
 		break;
 	case Reserved2:
 		setpoint=0;

@@ -63,7 +63,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 2300
+#define FW_VERSION 2310
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -289,6 +289,8 @@ public:
 	u32 getStatusBitsReg() const;
 	u32 getFirstFaultBitsReg() const;
 
+	s32 calcMotorOutputVotlage();
+
 	//these should be called only by MCcomm task once per 400us cycle, use getLastPositionFeedbackValue() from elsewhere
 	s16 getVelocityFeedbackValue();
 	u16 getPositionFeedbackValue();
@@ -402,6 +404,8 @@ public:
 	{
 		digitalCounterInput.setCounter(0);
 	}
+
+	bool servoReady;
 
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc

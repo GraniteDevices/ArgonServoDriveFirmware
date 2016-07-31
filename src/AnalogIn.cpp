@@ -330,8 +330,8 @@ void OPTIMIZE_FUNCTION AnalogIn::storeSamples()
 			int yy=median3(a,b,c);
 			int xx=ain2lpf.process( yy );
 			ADCsamples[channel]=(u16)xx;
-			sys.setDebugParam(5,yy);
-			sys.setDebugParam(6,xx);
+			//sys.setDebugParam(5,yy);
+			//sys.setDebugParam(6,xx);
 		}
 		else if(channel==AnaIn1)//do extra LPF for anain1 too (setpoint potentiometer)
 		{
