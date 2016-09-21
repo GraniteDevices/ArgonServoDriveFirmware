@@ -32,7 +32,7 @@ System::System() :
 				this, COMMAND_QUEUE2_SIZE, "cmdQ2Med" ), GCCmdStream2_HighPriority(
 				this, COMMAND_QUEUE2_SIZE, "cmdQS2High" ), GCCmdStream2_MediumPriority(
 				this, SYS_COMMAND_QUEUE_SIZE, "cmdQ2Low" ),
-				resolver(this)
+				resolver(this), sincosEncoder(this)
 
 {
 	lastPositionFBValue=0;
@@ -380,6 +380,15 @@ s16 System::getVelocityFeedbackValue()
 	case Resolver:
 		uncompensatedVel=resolver.getVelocity();
 		break;
+	case SinCos8x:
+		uncompensatedVel=sincosEncoder.getVelocity();
+		break;
+	case SinCos64x:
+		uncompensatedVel=sincosEncoder.getVelocity();
+		break;
+	case SinCos256x:
+		uncompensatedVel=sincosEncoder.getVelocity();
+		break;
 	case None:
 	default:
 		uncompensatedVel=0;
@@ -405,6 +414,17 @@ s16 System::getVelocityFeedbackValue()
 	return s16(vel);
 }
 
+//call at each 1/2500 cycle when sincos encoder is being used, this initializes it and reads value
+void System::updateSinCosEncoder()
+{
+	encoder.update();
+	sincosEncoder.setInputs( physIO.ADin.getVoltageVolts(AnalogIn::EncA), physIO.ADin.getVoltageVolts(AnalogIn::EncB), encoder.getCounter());
+	if(!sincosEncoder.isFullyInitialized())
+		sincosEncoder.initialize();
+	sincosEncoder.update();
+	sincosEncoder.updateVelocity();
+}
+
 u16 System::getPositionFeedbackValue()
 {
 	switch(velocityFeedbackDevice)
@@ -414,6 +434,18 @@ u16 System::getPositionFeedbackValue()
 		break;
 	case Resolver:
 		lastPositionFBValue=resolver.getAngle();
+		break;
+	case SinCos8x:
+		updateSinCosEncoder();
+		lastPositionFBValue=sincosEncoder.getCounter();
+		break;
+	case SinCos64x:
+		updateSinCosEncoder();
+		lastPositionFBValue=sincosEncoder.getCounter();
+		break;
+	case SinCos256x:
+		updateSinCosEncoder();
+		lastPositionFBValue=sincosEncoder.getCounter();
 		break;
 	case None:
 	default:
@@ -702,6 +734,18 @@ bool System::readInitStateFromGC()
 	case 3:
 		positionFeedbackDevice=Resolver;
 		resolver.enableResolverRead(true);
+		break;
+	case 6:
+		positionFeedbackDevice=SinCos8x;
+		sincosEncoder.setInterpolationFactor(8);
+		break;
+	case 7:
+		positionFeedbackDevice=SinCos64x;
+		sincosEncoder.setInterpolationFactor(64);
+		break;
+	case 8:
+		positionFeedbackDevice=SinCos256x;
+		sincosEncoder.setInterpolationFactor(256);
 		break;
 	default:
 		setFault(FLT_ENCODER,FAULTLOCATION_BASE+201);//unsupported fb1 device choice

@@ -16,6 +16,7 @@
 #include "sm485.h"
 #include "DigitalCounterInput.h"
 #include "ResolverIn.h"
+#include "SinCosEncoder.h"
 
 #define VSDR_049_HW_ID 3999 /* must change this BL on prototypes if in use! now its 4000*/
 #define VSDR_HW_ID 4000
@@ -149,8 +150,8 @@
 
 /*
  * STM32 perpheral usage:
- *
- * TIM1 PWM generator for DSCPowerTask
+ * TIM1 PWM setpoint input nr2 (not much used)
+ * TIM8 PWM generator for DSCPowerTask
  * TIM2 DigitalCounterInput (step/dir)
  * TIM3 EncoderIn
  * TIM4 System high freq task
@@ -258,7 +259,8 @@ public:
 	/*Feedback drivers*/
 	EncoderIn encoder;
 	ResolverIn resolver;
-	enum FeedbackDevice { None,Encoder,Resolver };
+	SinCosEncoder sincosEncoder;
+	enum FeedbackDevice { None,Encoder,Resolver,SinCos8x, SinCos64x, SinCos256x };
 
 
 	/* Drive input reference singal methods */
@@ -403,6 +405,8 @@ public:
 		digitalCounterInput.setCounter(0);
 	}
 
+	//call at each 1/2500 cycle when sincos encoder is being used, this initializes it and reads value
+	void updateSinCosEncoder();
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc
 	u32 FaultBitsReg;
