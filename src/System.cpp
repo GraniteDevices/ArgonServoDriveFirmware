@@ -48,6 +48,7 @@ System::System() :
 	DriveFlagBits=0;
 	setpointOffset=0;
 	serialSetpoint=0;
+
 	//deviceResetRequested=false;
 
 	//encoder is the default setting, changed later if configured so
@@ -381,11 +382,7 @@ s16 System::getVelocityFeedbackValue()
 		uncompensatedVel=resolver.getVelocity();
 		break;
 	case SinCos8x:
-		uncompensatedVel=sincosEncoder.getVelocity();
-		break;
 	case SinCos64x:
-		uncompensatedVel=sincosEncoder.getVelocity();
-		break;
 	case SinCos256x:
 		uncompensatedVel=sincosEncoder.getVelocity();
 		break;
@@ -417,10 +414,29 @@ s16 System::getVelocityFeedbackValue()
 //call at each 1/2500 cycle when sincos encoder is being used, this initializes it and reads value
 void System::updateSinCosEncoder()
 {
+	physIO.ADin.storeSamples();
+
+	//simutaneously sample encoder quadrature counter and analog encoder inputs, necessary for sincos to work at high speeds error free
+	physIO.ADin.startSampling();
+	/* One may put small delay here and swap order of two funcs if error shows up at high speeds (delay to adjust matching of sampling points).
+	 * Tested up to 75rps with 1024 cycle encoder and no problems found no matter which order these are and whether there is delay for(0..3500)NOP loop between them. Delay larger than 3500 loops caused FW hang.
+	 *
+	 * Test can be done by spinning motor in torque mode and plotting veloicty graph. If sync is wrong, spikes/noise with magnitude of interpolation factor
+	 * will appear at certain speeds caused by large enough timing error so that analog and digital interpretations wont fit into same quadrature.
+	 */
 	encoder.update();
-	sincosEncoder.setInputs( physIO.ADin.getVoltageVolts(AnalogIn::EncA), physIO.ADin.getVoltageVolts(AnalogIn::EncB), encoder.getCounter());
+
+	NOPdelay(3);//2.2us or more to finish first ADC conversion. tested that 3 is minimum that works
+
+	float chaVoltage,chbVoltage;
+	physIO.ADin.getFirstAnalogEncSample(chaVoltage,chbVoltage);
+	setDebugParam(4,chaVoltage*1000);
+	setDebugParam(5,chbVoltage*1000);
+
+	sincosEncoder.setInputs( chaVoltage, chbVoltage, encoder.getCounter());
 	if(!sincosEncoder.isFullyInitialized())
 		sincosEncoder.initialize();
+
 	sincosEncoder.update();
 	sincosEncoder.updateVelocity();
 }
@@ -436,13 +452,7 @@ u16 System::getPositionFeedbackValue()
 		lastPositionFBValue=resolver.getAngle();
 		break;
 	case SinCos8x:
-		updateSinCosEncoder();
-		lastPositionFBValue=sincosEncoder.getCounter();
-		break;
 	case SinCos64x:
-		updateSinCosEncoder();
-		lastPositionFBValue=sincosEncoder.getCounter();
-		break;
 	case SinCos256x:
 		updateSinCosEncoder();
 		lastPositionFBValue=sincosEncoder.getCounter();
@@ -510,6 +520,11 @@ void OPTIMIZE_FUNCTION System::highFrequencyISRTask()
 			resolver.addSamples(physIO.ADin.getVoltageVolts(AnalogIn::EncA),physIO.ADin.getVoltageVolts(AnalogIn::EncB),false);
 		}
 	}
+	/*else if(isSinCosEncoder)
+	{
+		//no code because adc is sampled in sincos update method.
+		//implement here sincos branch if ISR is enabled again also in sincos mode for some reason
+	}*/
 	else
 	{
 		physIO.ADin.storeSamples();
@@ -734,18 +749,22 @@ bool System::readInitStateFromGC()
 	case 3:
 		positionFeedbackDevice=Resolver;
 		resolver.enableResolverRead(true);
+		enableHighFrequencyTask( false ); //not needed in sincos mode, adc sampling done elsewhere
 		break;
 	case 6:
 		positionFeedbackDevice=SinCos8x;
 		sincosEncoder.setInterpolationFactor(8);
+		enableHighFrequencyTask( false ); //not needed in sincos mode, adc sampling done elsewhere
 		break;
 	case 7:
 		positionFeedbackDevice=SinCos64x;
 		sincosEncoder.setInterpolationFactor(64);
+		enableHighFrequencyTask( false ); //not needed in sincos mode, adc sampling done elsewhere
 		break;
 	case 8:
 		positionFeedbackDevice=SinCos256x;
 		sincosEncoder.setInterpolationFactor(256);
+		enableHighFrequencyTask( false ); //not needed in sincos mode, adc sampling done elsewhere
 		break;
 	default:
 		setFault(FLT_ENCODER,FAULTLOCATION_BASE+201);//unsupported fb1 device choice

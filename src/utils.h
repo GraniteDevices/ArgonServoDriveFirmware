@@ -58,6 +58,8 @@ void Delay_100us( int dly );
 //Probably very inaccurate at low values such as <10us
 void Delay_1us( int dly );
 
+//raw NOP based delay, dly=3 should cause approx 2.2us delay at 120MHz, but probably more due to loop overhead
+void NOPdelay( unsigned long dly );
 
 #ifdef __cplusplus
 }
