@@ -478,6 +478,14 @@ void OPTIMIZE_FUNCTION System::highFrequencyISRTask()
 			resolver.addSamples(physIO.ADin.getVoltageVolts(AnalogIn::EncA),physIO.ADin.getVoltageVolts(AnalogIn::EncB),false);
 		}
 	}
+	else if(isSinCosEncoder)
+	{
+		physIO.ADin.storeSamples();
+		physIO.ADin.startSampling();
+		encoder.update();//adjust delay/order between startsampling and update
+		NOPdelay(3);//2.2us or more to finish first ADC conversion
+		tee samplejen talletus tänne resolver.addSamples(physIO.ADin.getVoltageVolts(AnalogIn::EncA),physIO.ADin.getVoltageVolts(AnalogIn::EncB),false);
+	}
 	else
 	{
 		physIO.ADin.storeSamples();

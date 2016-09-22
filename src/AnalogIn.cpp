@@ -48,9 +48,10 @@ AnalogIn::AnalogIn()
 	 * t_onesample=SampleTime+12/ADCclock
 	 * i.e.
 	 * (15+12)/15MHz=1.8Âµs
-	 * and same in 6x oversampling and 4 channels = 21.6Âµs total
+	 * and same in 6x oversampling and 4 channels = 21.6µs total
 	 *
-	 * or 8x OS, 15cycle sampling, 30MHz ADC = 14.4Âµs (FW V1000 setting)
+	 * or 8x OS, 15cycle sampling, 30MHz ADC = 14.4µs (FW V1000 setting)
+	 * or 8x OS, 28cycle sampling, 30MHz ADC = 17.86µs (FW V2000 setting)
 	 */
 
 	//must not use static table if ADin is located in main() because RTOS start resets stack pointer
@@ -149,8 +150,8 @@ AnalogIn::AnalogIn()
 	{
 		//ADC_RegularChannelConfig( ADC1, ADC_Channel_TempSensor, 1+i*2, sampleTime );
 //		ADC_RegularChannelConfig( ADC1, ADC_Channel_Vrefint, 2+i*2, sampleTime );
-		ADC_RegularChannelConfig( ADC1, ADC_Channel_10, 1+i*2, sampleTime );//AIN1
 		ADC_RegularChannelConfig( ADC1, ADC_Channel_12, 2+i*2, sampleTime );//CHB
+		ADC_RegularChannelConfig( ADC1, ADC_Channel_10, 1+i*2, sampleTime );//AIN1
 	}
 
 	/* Enable ADC1 DMA since ADC1 is the Master*/
@@ -162,8 +163,8 @@ AnalogIn::AnalogIn()
 	{
 	//	ADC_RegularChannelConfig( ADC2, ADC_Channel_Vrefint, 1+i*2, sampleTime );
 //		ADC_RegularChannelConfig( ADC2, ADC_Channel_TempSensor, 2+i*2, sampleTime );
-		ADC_RegularChannelConfig( ADC2, ADC_Channel_11, 1+i*2, sampleTime );//AIN2
 		ADC_RegularChannelConfig( ADC2, ADC_Channel_13, 2+i*2, sampleTime );//CHA
+		ADC_RegularChannelConfig( ADC2, ADC_Channel_11, 1+i*2, sampleTime );//AIN2
 	}
 
 	/* Enable DMA request after last transfer (Multi-ADC mode)  */
@@ -289,6 +290,14 @@ void OPTIMIZE_FUNCTION AnalogIn::storeSamples()
 		//no avg:
 		//i=0;ADCsamples[channel]=8*ADCDMASampleBuffer[channel+i*ADC_CHANS];
 	}
+}
+
+//method to read encoder analog samples as soon as first two are converted (needed for sincos because quadature encoder must be sampled simultaneously)
+//should return fresh valus values ~2.2us after startSampling()
+void OPTIMIZE_FUNCTION AnalogIn::getFirstAnalogEncSample( float &cha, float &chb )
+{
+	cha=float(s32(ADCDMASampleBuffer[EncA])-ADC_OFFSET_VALUE_ENC)*(4.4688e-4/8.0);
+	chb=float(s32(ADCDMASampleBuffer[EncB])-ADC_OFFSET_VALUE_ENC)*(4.4688e-4/8.0);
 }
 
 //for analyzing/debugging adc noise

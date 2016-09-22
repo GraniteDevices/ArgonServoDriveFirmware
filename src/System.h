@@ -449,6 +449,8 @@ private:
     int brakeEngageDelayMs;
 	
 	u16 lastPositionFBValue;
+
+	bool isSinCosEncoder;
 };
 
 #endif /* SYSTEM_H_ */
