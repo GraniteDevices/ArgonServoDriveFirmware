@@ -90,7 +90,7 @@ OPTIMIZE_FUNCTION bool SinCosEncoder::hasIndexUpdated() {
 }
 
 OPTIMIZE_FUNCTION u16 SinCosEncoder::getCounterAtIndex() {
-	return ((0xffff-parentSys->encoder.getCounterAtIndex())+incrAdder)*interpolationFactor/4+resetAdder;
+	return ((parentSys->encoder.getCounterAtIndex())+incrAdder)*interpolationFactor/4+resetAdder;
 }
 
 

@@ -39,7 +39,7 @@ public:
 	{
 		a=(cha+offset_a)*gain_a;
 		b=(chb+offset_b)*gain_b;
-		incr=0xffff-counter;
+		incr=counter;
 	}
 #if 0
 	void setInputs(float cha,float chb)

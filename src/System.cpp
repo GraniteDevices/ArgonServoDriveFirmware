@@ -433,7 +433,7 @@ void System::updateSinCosEncoder()
 	setDebugParam(4,chaVoltage*1000);
 	setDebugParam(5,chbVoltage*1000);
 
-	sincosEncoder.setInputs( chaVoltage, chbVoltage, encoder.getCounter());
+	sincosEncoder.setInputs( chbVoltage, chaVoltage, encoder.getCounter());//swapped cha and chb in here to match analog ins rotation direction with digital encoder interpretation
 	if(!sincosEncoder.isFullyInitialized())
 		sincosEncoder.initialize();
 
