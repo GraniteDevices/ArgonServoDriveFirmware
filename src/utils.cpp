@@ -210,8 +210,8 @@ void NVIC_Init_GD(NVIC_InitTypeDef* NVIC_InitStruct)
 }
 
 
-
-inline void NOPdelay( unsigned long dly )
+//raw NOP based delay, dly=3 should cause approx 2.2us delay at 120MHz, but probably more due to loop overhead
+void NOPdelay( unsigned long dly )
 {
 	unsigned long i;
 	for( i = 0; i < dly; i++ )
