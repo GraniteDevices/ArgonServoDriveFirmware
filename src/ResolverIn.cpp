@@ -28,6 +28,11 @@
 #include "misc.h"//==NVIC
 #include "globals.h"
 #include "utils.h"
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979
+#endif
 
 //10kHz switching
 //#define RESOLVER_FREQ 10000
@@ -116,7 +121,7 @@ void ResolverIn::enableResolverRead( bool on )
 	}
 }
 
-#include <math.h>
+
 u16 ResolverIn::getAngle()
 {
 	static DelayedConditional faultdelay(parentSys,0.2,false);

@@ -24,7 +24,7 @@ public:
 	AnalogIn();
 	~AnalogIn();
 
-	enum Channel {AnaIn1=0, AnaIn2=1, EncB=2, EncA=3};
+	enum Channel {EncB=0, EncA=1,AnaIn1=2, AnaIn2=3};
 
 
 
@@ -40,6 +40,10 @@ public:
 
 	//for analyzing/debugging adc noise
 	void collectNoiseStatistics();
+
+	//method to read encoder analog samples as soon as first two are converted (needed for sincos because quadature encoder must be sampled simultaneously)
+	//should return fresh valus values ~2.2us after startSampling() (based on 30MHz freq and 28clock sampling time)
+	void getFirstAnalogEncSample( float &cha, float &chb );
 
 private:
 	//volatile u16 ADCsamples[ADC_CHANS*ADC_OVERSAMPLING];

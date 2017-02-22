@@ -149,6 +149,20 @@ void SystemPeriodicTask( void *pvParameters )
 				}
 			}
 		}
+		else if(sys.getCurrentPositionFeedbackDevice()==System::SinCos8x ||
+				sys.getCurrentPositionFeedbackDevice()==System::SinCos64x ||
+				sys.getCurrentPositionFeedbackDevice()==System::SinCos256x)
+		{
+			if (sys.sincosEncoder.hasIndexUpdated())
+			{
+				sys.indexHasOccurred=true;
+				if (sys.setParameter( SMP_INDEX_PULSE_LOCATION,
+						sys.sincosEncoder.getCounterAtIndex() ) == false)
+				{
+					sys.setFault( FLT_GC_COMM, 100203 );//if setting failed
+				}
+			}
+		}
 		else if(sys.getCurrentPositionFeedbackDevice()==System::Resolver)
 		{
 			if (sys.resolver.hasIndexUpdated())
