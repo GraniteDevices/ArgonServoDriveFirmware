@@ -104,7 +104,7 @@ private:
 
 	//both a and b must be above this voltage to have initialize position (digital reading is not in hysteresis)
 	static constexpr float defaultGainCoeff=8192.0;
-	static constexpr float minimumAmplForDigitalReadout=0.37*defaultGainCoeff;//0.37volts
+	static constexpr float minimumAmplForDigitalReadout=0.34*defaultGainCoeff;//0.34volts
 
 	static constexpr int calibrationAngles=32;
 	static constexpr int calibrationSamples=16;
