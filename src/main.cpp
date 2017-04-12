@@ -101,8 +101,12 @@ void updatePhysOutputs()
 	else
 #endif
 	{
-
-	sys.physIO.doutGPO1.setState((sys.GCStatusBits&STAT_RUN) && (sys.GCStatusBits&STAT_INITIALIZED) && !(sys.GCStatusBits&STAT_HOMING) && !(sys.GCStatusBits&STAT_FERROR_RECOVERY));//servo ready
+    sys.physIO.doutGPO1.setState((sys.GCStatusBits&STAT_RUN)
+                                     && (sys.GCStatusBits&STAT_INITIALIZED)
+                                     && !(sys.GCStatusBits&STAT_HOMING)
+                                     && !(sys.GCStatusBits&STAT_FERROR_RECOVERY)
+                                     && !(sys.GCStatusBits&STAT_FAULTSTOP) //this line is redundant, STAT_RUN goes 0 if STAT_FAULTSTOP is 1
+                                     && !(sys.GCStatusBits&STAT_STO_ACTIVE) );//servo ready
 	sys.physIO.doutGPO2.setState(sys.GCStatusBits&STAT_FERROR_WARNING);
 	sys.physIO.doutGPO3.setState(sys.GCStatusBits&STAT_FAULTSTOP);
 	sys.physIO.doutGPO4.setState(sys.GCStatusBits&STAT_BRAKING);
