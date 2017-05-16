@@ -64,7 +64,7 @@
  * -serial comm fails sometimes after FW upgrade and app launch from granity. perhaps address goes wrong or it gets disturbed by serial comm rx too early?
  *
  */
-#define FW_VERSION 2110
+#define FW_VERSION 2120
 #define FW_BACKWARDS_COMPATITBLE_VERSION 1090
 
 #define COMMAND_QUEUE1_SIZE 256
@@ -407,6 +407,9 @@ public:
 
 	//call at each 1/2500 cycle when sincos encoder is being used, this initializes it and reads value
 	void updateSinCosEncoder();
+
+	//allow to send nonzero setpoint after this is called
+	void setSystemReadyForSetpoint() { systemReadyForSetpoint=true; }
 private:
 	//these registers are for local STM side status&faults. for GC side registers, see GCStatusBits etc
 	u32 FaultBitsReg;
@@ -453,6 +456,8 @@ private:
     int brakeEngageDelayMs;
 	
 	u16 lastPositionFBValue;
+
+	bool systemReadyForSetpoint;//true if allowed to send nonzero setpoint
 };
 
 #endif /* SYSTEM_H_ */

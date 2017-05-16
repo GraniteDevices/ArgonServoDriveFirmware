@@ -88,30 +88,21 @@ void sendPhysInputsToGC()
 
 void updatePhysOutputs()
 {
-#if 0
-	if(sys.getDebugParam(4))
-	{
-#warning TESTIKOODIA
-//#error TESTIKOODIA
-		sys.physIO.doutGPO1.setState(int(sys.getDebugParam(4)&1));
-		sys.physIO.doutGPO2.setState(int(sys.getDebugParam(4)&2));
-		sys.physIO.doutGPO3.setState(int(sys.getDebugParam(4)&4));
-		sys.physIO.doutGPO4.setState(int(sys.getDebugParam(4)&8));
-	}
-	else
-#endif
-	{
-    sys.physIO.doutGPO1.setState((sys.GCStatusBits&STAT_RUN)
-                                     && (sys.GCStatusBits&STAT_INITIALIZED)
-                                     && !(sys.GCStatusBits&STAT_HOMING)
-                                     && !(sys.GCStatusBits&STAT_FERROR_RECOVERY)
-									 && !(sys.GCFaultBits&FLT_PSTAGE_FORCED_OFF)
-                                     && !(sys.GCStatusBits&STAT_FAULTSTOP) //this line is redundant, STAT_RUN goes 0 if STAT_FAULTSTOP is 1
-                                     && !(sys.GCStatusBits&STAT_STO_ACTIVE) );//servo ready
+	bool servoReady=(sys.GCStatusBits&STAT_RUN)
+                                             && (sys.GCStatusBits&STAT_INITIALIZED)
+                                             && !(sys.GCStatusBits&STAT_HOMING)
+                                             && !(sys.GCStatusBits&STAT_FERROR_RECOVERY)
+        									 && !(sys.GCFaultBits&FLT_PSTAGE_FORCED_OFF)
+                                             && !(sys.GCStatusBits&STAT_FAULTSTOP) //this line is redundant, STAT_RUN goes 0 if STAT_FAULTSTOP is 1
+                                             && !(sys.GCStatusBits&STAT_STO_ACTIVE);
+
+	sys.physIO.doutGPO1.setState( servoReady );//servo ready
 	sys.physIO.doutGPO2.setState(sys.GCStatusBits&STAT_FERROR_WARNING);
 	sys.physIO.doutGPO3.setState(sys.GCStatusBits&STAT_FAULTSTOP);
 	sys.physIO.doutGPO4.setState(sys.GCStatusBits&STAT_BRAKING);
-	}
+
+	if(servoReady)
+		sys.setSystemReadyForSetpoint();//allow system to send nonzero setpoint after the first time servoReady is true
 }
 
 /* this task communicates to GC periodically to do various things

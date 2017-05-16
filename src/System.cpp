@@ -48,6 +48,7 @@ System::System() :
 	DriveFlagBits=0;
 	setpointOffset=0;
 	serialSetpoint=0;
+	systemReadyForSetpoint=false;
 
 	//deviceResetRequested=false;
 
@@ -364,7 +365,10 @@ s32 System::getInputReferenceValue()
 		break;
 	}
 
-	return setpoint+serialSetpoint;
+	if(systemReadyForSetpoint)//true if system is ready & initialzied
+		return setpoint+serialSetpoint;
+	else
+		return 0;
 }
 
 s16 System::getVelocityFeedbackValue()
