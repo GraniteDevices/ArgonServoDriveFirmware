@@ -753,7 +753,6 @@ bool System::readInitStateFromGC()
 	case 3:
 		positionFeedbackDevice=Resolver;
 		resolver.enableResolverRead(true);
-		enableHighFrequencyTask( false ); //not needed in sincos mode, adc sampling done elsewhere
 		break;
 	case 6:
 		positionFeedbackDevice=SinCos8x;
