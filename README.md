@@ -26,6 +26,11 @@ Source code of firmware and makefirmware utily is easily compiled by `make` comm
 
 For Windows system, an easy way to obtain make is to install "msys-base" and "msys-make" packages from MinGW Installation Manager. MinGW site: http://www.mingw.org/ Download the installation manager at: http://sourceforge.net/projects/mingw/files/Installer/ . You may also add MSys binaries to system environment variable called PATH to have make command to work from command prompt without typing full executable path every time. If the default folder was used, make.exe is located at: C:\MinGW\msys\1.0\bin.
 
+Ready-to-use build environment for Windows
+------------------------------------------
+
+For Windows users, there is also alternative way to get ready-to-launch build environment with all necessary tools from https://github.com/GraniteDevices/ArgonServoDriveFirmware-windows-build-environment.
+
 Tips
 ----
 1) Make sure that system path is set so that make and arm-none-eabi-gcc are found "globally" in the system. I.e. when you enter in command `make` or `arm-none-eabi-gcc` in a command prompt, you don't get any kind of "command not found" message.
